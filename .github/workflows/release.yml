@@ -83,6 +83,12 @@ jobs:
             | Windows | amd64 | `nanobanana-windows-amd64.exe` |
             | Windows | arm64 | `nanobanana-windows-arm64.exe` |
 
+            ## Installation
+            ```bash
+            brew tap skorfmann/nanobanana
+            brew install nanobanana
+            ```
+
             ## Verification
             Download `checksums.txt` and verify with:
             ```bash
@@ -90,3 +96,84 @@ jobs:
             ```
           files: |
             dist/*
+
+      - name: Update Homebrew Tap
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          # Skip if no token configured
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set, skipping Homebrew tap update"
+            exit 0
+          fi
+
+          # Extract checksums
+          SHA_DARWIN_ARM64=$(grep nanobanana-darwin-arm64 dist/checksums.txt | cut -d' ' -f1)
+          SHA_DARWIN_AMD64=$(grep nanobanana-darwin-amd64 dist/checksums.txt | cut -d' ' -f1)
+          SHA_LINUX_ARM64=$(grep nanobanana-linux-arm64 dist/checksums.txt | cut -d' ' -f1)
+          SHA_LINUX_AMD64=$(grep nanobanana-linux-amd64 dist/checksums.txt | cut -d' ' -f1)
+
+          # Clone tap repo
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/skorfmann/homebrew-nanobanana.git tap
+          cd tap
+
+          # Generate updated formula
+          cat > Formula/nanobanana.rb << FORMULA
+          class Nanobanana < Formula
+            desc "CLI tool for generating images using Google's Gemini API"
+            homepage "https://github.com/skorfmann/nanobanana"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/skorfmann/nanobanana/releases/download/#{version}/nanobanana-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+
+                def install
+                  bin.install "nanobanana-darwin-arm64" => "nanobanana"
+                end
+              else
+                url "https://github.com/skorfmann/nanobanana/releases/download/#{version}/nanobanana-darwin-amd64"
+                sha256 "${SHA_DARWIN_AMD64}"
+
+                def install
+                  bin.install "nanobanana-darwin-amd64" => "nanobanana"
+                end
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/skorfmann/nanobanana/releases/download/#{version}/nanobanana-linux-arm64"
+                sha256 "${SHA_LINUX_ARM64}"
+
+                def install
+                  bin.install "nanobanana-linux-arm64" => "nanobanana"
+                end
+              else
+                url "https://github.com/skorfmann/nanobanana/releases/download/#{version}/nanobanana-linux-amd64"
+                sha256 "${SHA_LINUX_AMD64}"
+
+                def install
+                  bin.install "nanobanana-linux-amd64" => "nanobanana"
+                end
+              end
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/nanobanana -version")
+            end
+          end
+          FORMULA
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' Formula/nanobanana.rb
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/nanobanana.rb
+          git commit -m "Update nanobanana to ${VERSION}"
+          git push
