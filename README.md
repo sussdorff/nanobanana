@@ -2,6 +2,8 @@
 
 A lightweight CLI tool for generating and editing images using Google's Gemini API.
 
+> **Best used with your coding agent CLI of choice!** This tool pairs excellently with [Claude Code](https://claude.ai/claude-code) and similar AI coding assistants for automated image generation workflows.
+
 ## Features
 
 - **Text-to-image generation** - Create images from text prompts
@@ -16,13 +18,20 @@ A lightweight CLI tool for generating and editing images using Google's Gemini A
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap skorfmann/nanobanana
+brew install nanobanana
+```
+
 ### From GitHub Releases
 
 Download the latest binary for your platform from the [Releases](../../releases) page.
 
 ```bash
 # Example for macOS arm64
-curl -L -o nanobanana https://github.com/<owner>/nanobanana/releases/latest/download/nanobanana-darwin-arm64
+curl -L -o nanobanana https://github.com/skorfmann/nanobanana/releases/latest/download/nanobanana-darwin-arm64
 chmod +x nanobanana
 ./nanobanana -version
 ```
@@ -30,14 +39,15 @@ chmod +x nanobanana
 ### From source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/skorfmann/nanobanana.git
 cd nanobanana
 go build -o nanobanana main.go
 ```
 
 ## Setup
 
-Set your Gemini API key as an environment variable:
+1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+2. Set it as an environment variable:
 
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
@@ -144,15 +154,26 @@ Use a template image as a style reference for consistent branding across slides.
 
 Each example includes a README and the markdown source used to generate the images. See the `examples/` folder for full prompts and generated outputs.
 
-## Using with Claude Code
+## Using with Coding Agents
 
-Nanobanana works well with Claude Code for automated image generation workflows:
+Nanobanana works great with AI coding assistants like Claude Code for automated image generation workflows:
 
 1. Describe slides/images in a markdown file
-2. Claude Code reads the markdown and extracts prompts
-3. Claude Code runs nanobanana to generate each image
+2. Your coding agent reads the markdown and extracts prompts
+3. The agent runs nanobanana to generate each image
 
 See `examples/branded-presentation/` for a complete workflow demonstration.
+
+## API Pricing
+
+Uses `gemini-3-pro-image-preview` model. Approximate costs:
+
+| Size | Cost per Image |
+|------|----------------|
+| 1K-2K | ~$0.13 |
+| 4K | ~$0.24 |
+
+See [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing) for current rates.
 
 ## License
 

@@ -2,6 +2,12 @@
 
 This file provides context for Claude Code when working on this project.
 
+## ⚠️ IMPORTANT: API Model
+
+**Model**: `gemini-3-pro-image-preview`
+
+This is the specific Gemini model used for image generation. Do NOT change this without understanding the implications - different models have different capabilities, pricing, and availability.
+
 ## Project Overview
 
 Nanobanana is a single-file Go CLI tool that wraps Google's Gemini image generation API. It enables text-to-image generation, image editing, and multi-image composition.
@@ -60,9 +66,19 @@ GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=$VERSION" -o na
 
 ## API Details
 
+- **Model**: `gemini-3-pro-image-preview`
 - **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent`
 - **Timeout**: 120 seconds
 - **Auth**: API key passed via `x-goog-api-key` header
+
+### Pricing (approximate)
+
+| Size | Cost per Image |
+|------|----------------|
+| 1K-2K | ~$0.13 |
+| 4K | ~$0.24 |
+
+See [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing) for current rates.
 
 ## Common Tasks
 
