@@ -1,0 +1,19 @@
+# Binaries
+nanobanana
+nanobanana-*
+*.exe
+
+# Generated images
+image_*.png
+image_*.jpg
+image_*.webp
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
