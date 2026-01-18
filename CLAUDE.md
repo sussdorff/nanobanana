@@ -136,6 +136,17 @@ GitHub Actions automatically creates releases on every push to main:
 
 Located at `.github/workflows/release.yml`
 
+### Homebrew Tap
+
+Releases automatically update the Homebrew tap at `skorfmann/homebrew-nanobanana`.
+
+```bash
+brew tap skorfmann/nanobanana
+brew install nanobanana
+```
+
+Requires `HOMEBREW_TAP_TOKEN` secret (PAT with `repo` scope).
+
 ## Examples Directory
 
 The `examples/` folder contains working examples:
