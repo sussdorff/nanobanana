@@ -80,7 +80,23 @@ GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=$VERSION" -o na
 
 ## Testing
 
-No automated tests currently. Manual testing workflow:
+### Unit Tests
+
+Run automated tests:
+
+```bash
+go test -v ./...
+```
+
+Tests cover:
+- `stringSlice` flag type (String, Set methods)
+- `extensionFromMime` - MIME type to extension mapping
+- `mimeFromExtension` - extension to MIME type mapping
+- `validAspectRatios` - aspect ratio validation
+- `validSizes` - size validation
+- Extension auto-correction logic
+
+### Manual Testing
 
 ```bash
 # Text-to-image
@@ -90,7 +106,7 @@ No automated tests currently. Manual testing workflow:
 ./nanobanana -i test.jpg "edit instruction"
 
 # Check output file was created
-ls -la image_*.png
+ls -la image_*.jpg
 ```
 
 ## Error Handling
