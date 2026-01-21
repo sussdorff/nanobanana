@@ -1,6 +1,6 @@
 # Nanobanana
 
-A lightweight CLI tool for generating and editing images using Google's Gemini API.
+A lightweight CLI tool for generating and editing images using Google's Gemini API or OpenRouter.
 
 > **Best used with your coding agent CLI of choice!** This tool pairs excellently with [Claude Code](https://claude.ai/claude-code) and similar AI coding assistants for automated image generation workflows.
 
@@ -10,11 +10,12 @@ A lightweight CLI tool for generating and editing images using Google's Gemini A
 - **Image editing** - Transform existing images with text instructions
 - **Multi-image composition** - Combine multiple input images
 - **Flexible output** - 9 aspect ratios and 3 size options
+- **Multiple API backends** - Use Gemini API directly or via OpenRouter
 
 ## Requirements
 
 - Go 1.25+ (for building from source)
-- Google Gemini API key with access to `gemini-3-pro-image-preview`
+- Google Gemini API key OR OpenRouter API key
 
 ## Installation
 
@@ -52,12 +53,29 @@ go build -o nanobanana main.go
 
 ## Setup
 
+### Option 1: Gemini API (Direct)
+
 1. Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
 2. Set it as an environment variable:
 
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
+
+### Option 2: OpenRouter
+
+1. Get an API key from [OpenRouter](https://openrouter.ai/keys)
+2. Set it as an environment variable:
+
+```bash
+export OPENROUTER_API_KEY="your-api-key-here"
+```
+
+### API Selection Logic
+
+- If only `GEMINI_API_KEY` is set: uses Gemini API directly
+- If only `OPENROUTER_API_KEY` is set: uses OpenRouter API
+- If both are set: uses Gemini API (use `-model` flag to force OpenRouter)
 
 ## Usage
 
@@ -73,6 +91,7 @@ nanobanana [options] "prompt"
 | `-o <file>` | Output filename | `image_YYYYMMDD_HHMMSS.png` |
 | `-aspect <ratio>` | Aspect ratio | `1:1` |
 | `-size <size>` | Image size | `1K` |
+| `-model <model>` | OpenRouter model (enables OpenRouter API) | `google/gemini-3-pro-image-preview` |
 | `-h` | Show help | - |
 | `-version` | Show version | - |
 
@@ -105,6 +124,16 @@ nanobanana -aspect 16:9 -size 2K "cinematic mountain landscape at sunset"
 
 # Custom output filename
 nanobanana -o hero-image.png "abstract geometric pattern"
+```
+
+### Using OpenRouter
+
+```bash
+# Use default model (gemini-3-pro-image-preview)
+nanobanana -model google/gemini-3-pro-image-preview "a cute cat"
+
+# Use a different model
+nanobanana -model google/gemini-2.5-flash-image-preview "a sunset over mountains"
 ```
 
 ### Image editing
@@ -172,6 +201,8 @@ See `examples/branded-presentation/` for a complete workflow demonstration.
 
 ## API Pricing
 
+### Gemini API (Direct)
+
 Uses `gemini-3-pro-image-preview` model. Approximate costs:
 
 | Size | Cost per Image |
@@ -180,6 +211,10 @@ Uses `gemini-3-pro-image-preview` model. Approximate costs:
 | 4K | ~$0.24 |
 
 See [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing) for current rates.
+
+### OpenRouter
+
+Pricing varies by model. See [OpenRouter Pricing](https://openrouter.ai/models) for current rates.
 
 ## License
 

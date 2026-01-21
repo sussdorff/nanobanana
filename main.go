@@ -30,8 +30,10 @@ func (s *stringSlice) Set(value string) error {
 }
 
 const (
-	apiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
-	httpTimeout = 120 * time.Second
+	geminiEndpoint     = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+	openrouterEndpoint = "https://openrouter.ai/api/v1/chat/completions"
+	defaultModel       = "google/gemini-3-pro-image-preview"
+	httpTimeout        = 120 * time.Second
 )
 
 var validAspectRatios = map[string]bool{
@@ -108,6 +110,64 @@ type APIError struct {
 	Status  string `json:"status"`
 }
 
+// OpenRouter request structures
+type OpenRouterRequest struct {
+	Model       string            `json:"model"`
+	Messages    []OpenRouterMsg   `json:"messages"`
+	Modalities  []string          `json:"modalities"`
+	ImageConfig *ImageConfig      `json:"image_config,omitempty"`
+}
+
+type OpenRouterMsg struct {
+	Role    string        `json:"role"`
+	Content []interface{} `json:"content"`
+}
+
+type OpenRouterTextContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type OpenRouterImageContent struct {
+	Type     string              `json:"type"`
+	ImageURL OpenRouterImageURL  `json:"image_url"`
+}
+
+type OpenRouterImageURL struct {
+	URL string `json:"url"`
+}
+
+// OpenRouter response structures
+type OpenRouterResponse struct {
+	Choices []OpenRouterChoice `json:"choices"`
+	Error   *OpenRouterError   `json:"error,omitempty"`
+}
+
+type OpenRouterChoice struct {
+	Message OpenRouterMessage `json:"message"`
+}
+
+type OpenRouterMessage struct {
+	Content string               `json:"content,omitempty"`
+	Images  []OpenRouterImageOut `json:"images,omitempty"`
+}
+
+type OpenRouterImageOut struct {
+	ImageURL OpenRouterImageURL `json:"image_url"`
+}
+
+type OpenRouterError struct {
+	Message string `json:"message"`
+	Code    int    `json:"code,omitempty"`
+}
+
+// APIConfig holds the configuration for which API to use
+type APIConfig struct {
+	UseOpenRouter bool
+	APIKey        string
+	Model         string
+}
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -122,6 +182,7 @@ func run() error {
 	output := flag.String("o", "", "Output filename (auto-generated if not specified)")
 	aspect := flag.String("aspect", "1:1", "Aspect ratio (1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9)")
 	size := flag.String("size", "1K", "Image size (1K, 2K, 4K)")
+	model := flag.String("model", "", "OpenRouter model to use (enables OpenRouter API)")
 	help := flag.Bool("h", false, "Show help")
 	showVersion := flag.Bool("version", false, "Show version")
 
@@ -146,10 +207,31 @@ func run() error {
 	}
 	prompt := strings.Join(args, " ")
 
-	// Validate API key
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("GEMINI_API_KEY environment variable not set")
+	// Determine which API to use and validate API key
+	config := APIConfig{}
+
+	// Check for OpenRouter API key first if model flag is set or OPENROUTER_API_KEY is present
+	openrouterKey := os.Getenv("OPENROUTER_API_KEY")
+	geminiKey := os.Getenv("GEMINI_API_KEY")
+
+	if *model != "" || (openrouterKey != "" && geminiKey == "") {
+		// Use OpenRouter
+		if openrouterKey == "" {
+			return fmt.Errorf("OPENROUTER_API_KEY environment variable not set (required when using -model flag or OpenRouter)")
+		}
+		config.UseOpenRouter = true
+		config.APIKey = openrouterKey
+		config.Model = *model
+		if config.Model == "" {
+			config.Model = defaultModel
+		}
+	} else {
+		// Use Gemini
+		if geminiKey == "" {
+			return fmt.Errorf("GEMINI_API_KEY environment variable not set (or use OPENROUTER_API_KEY with -model flag)")
+		}
+		config.UseOpenRouter = false
+		config.APIKey = geminiKey
 	}
 
 	// Validate aspect ratio
@@ -169,9 +251,22 @@ func run() error {
 	}
 	fmt.Printf("  Aspect: %s\n", *aspect)
 	fmt.Printf("  Size:   %s\n", *size)
+	if config.UseOpenRouter {
+		fmt.Printf("  API:    OpenRouter (%s)\n", config.Model)
+	} else {
+		fmt.Printf("  API:    Gemini\n")
+	}
 
 	// Generate image
-	imageData, mimeType, err := generateImage(apiKey, prompt, inputImages, *aspect, *size)
+	var imageData []byte
+	var mimeType string
+	var err error
+
+	if config.UseOpenRouter {
+		imageData, mimeType, err = generateImageOpenRouter(config, prompt, inputImages, *aspect, *size)
+	} else {
+		imageData, mimeType, err = generateImageGemini(config.APIKey, prompt, inputImages, *aspect, *size)
+	}
 	if err != nil {
 		return err
 	}
@@ -200,7 +295,7 @@ func run() error {
 	return nil
 }
 
-func generateImage(apiKey, prompt string, inputImages []string, aspectRatio, imageSize string) ([]byte, string, error) {
+func generateImageGemini(apiKey, prompt string, inputImages []string, aspectRatio, imageSize string) ([]byte, string, error) {
 	// Build parts: input images first, then text prompt (per Gemini API pattern)
 	var parts []Part
 
@@ -236,7 +331,7 @@ func generateImage(apiKey, prompt string, inputImages []string, aspectRatio, ima
 	}
 
 	// Create HTTP request
-	httpReq, err := http.NewRequest("POST", apiEndpoint, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequest("POST", geminiEndpoint, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -292,6 +387,136 @@ func generateImage(apiKey, prompt string, inputImages []string, aspectRatio, ima
 	return nil, "", fmt.Errorf("no image data in response")
 }
 
+func generateImageOpenRouter(config APIConfig, prompt string, inputImages []string, aspectRatio, imageSize string) ([]byte, string, error) {
+	// Build content parts for OpenRouter format
+	var contentParts []interface{}
+
+	// Add input images first
+	for _, imgPath := range inputImages {
+		inlineData, err := loadImage(imgPath)
+		if err != nil {
+			return nil, "", err
+		}
+		// OpenRouter expects data URLs
+		dataURL := fmt.Sprintf("data:%s;base64,%s", inlineData.MimeType, inlineData.Data)
+		contentParts = append(contentParts, OpenRouterImageContent{
+			Type: "image_url",
+			ImageURL: OpenRouterImageURL{
+				URL: dataURL,
+			},
+		})
+	}
+
+	// Add text prompt
+	contentParts = append(contentParts, OpenRouterTextContent{
+		Type: "text",
+		Text: prompt,
+	})
+
+	// Build request
+	req := OpenRouterRequest{
+		Model: config.Model,
+		Messages: []OpenRouterMsg{
+			{
+				Role:    "user",
+				Content: contentParts,
+			},
+		},
+		Modalities: []string{"image", "text"},
+		ImageConfig: &ImageConfig{
+			AspectRatio: aspectRatio,
+			ImageSize:   imageSize,
+		},
+	}
+
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Create HTTP request
+	httpReq, err := http.NewRequest("POST", openrouterEndpoint, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
+
+	// Execute request
+	client := &http.Client{Timeout: httpTimeout}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Check HTTP status first
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("HTTP error: %s - %s", resp.Status, string(body))
+	}
+
+	// Parse response
+	var orResp OpenRouterResponse
+	if err := json.Unmarshal(body, &orResp); err != nil {
+		return nil, "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Check for API error
+	if orResp.Error != nil {
+		return nil, "", fmt.Errorf("API error: %s", orResp.Error.Message)
+	}
+
+	// Extract image data from OpenRouter response
+	if len(orResp.Choices) == 0 {
+		return nil, "", fmt.Errorf("no choices in response")
+	}
+
+	if len(orResp.Choices[0].Message.Images) == 0 {
+		return nil, "", fmt.Errorf("no images in response")
+	}
+
+	// Parse the data URL (format: data:image/png;base64,...)
+	dataURL := orResp.Choices[0].Message.Images[0].ImageURL.URL
+	if !strings.HasPrefix(dataURL, "data:") {
+		return nil, "", fmt.Errorf("unexpected image URL format: %s", dataURL[:min(50, len(dataURL))])
+	}
+
+	// Extract MIME type and base64 data
+	// Format: data:image/png;base64,iVBORw0KGgo...
+	parts := strings.SplitN(dataURL, ",", 2)
+	if len(parts) != 2 {
+		return nil, "", fmt.Errorf("invalid data URL format")
+	}
+
+	// Parse the header (data:image/png;base64)
+	header := parts[0]
+	b64Data := parts[1]
+
+	// Extract MIME type from header
+	mimeType := "image/png" // default
+	if strings.HasPrefix(header, "data:") {
+		headerParts := strings.Split(header[5:], ";")
+		if len(headerParts) > 0 && headerParts[0] != "" {
+			mimeType = headerParts[0]
+		}
+	}
+
+	// Decode base64 data
+	imageData, err := base64.StdEncoding.DecodeString(b64Data)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to decode image data: %w", err)
+	}
+
+	return imageData, mimeType, nil
+}
+
 func extensionFromMime(mimeType string) string {
 	switch mimeType {
 	case "image/png":
@@ -334,7 +559,7 @@ func loadImage(path string) (*InlineData, error) {
 }
 
 func printUsage() {
-	fmt.Fprintf(os.Stderr, `nanobanana - Generate images using Gemini API
+	fmt.Fprintf(os.Stderr, `nanobanana - Generate images using Gemini or OpenRouter API
 
 Usage:
   nanobanana [options] "prompt"
@@ -348,17 +573,31 @@ Options:
                   Valid: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
   -size <size>   Image size (default: 1K)
                   Valid: 1K, 2K, 4K
+  -model <model> OpenRouter model (enables OpenRouter API)
+                  Default: google/gemini-3-pro-image-preview
   -h             Show this help
   -version       Show version
 
 Environment:
-  GEMINI_API_KEY  Required. Your Gemini API key.
+  GEMINI_API_KEY      Gemini API key (used by default)
+  OPENROUTER_API_KEY  OpenRouter API key (used with -model flag, or when
+                      GEMINI_API_KEY is not set)
+
+API Selection:
+  - If only GEMINI_API_KEY is set: uses Gemini API
+  - If only OPENROUTER_API_KEY is set: uses OpenRouter API
+  - If both are set: uses Gemini API (use -model flag to force OpenRouter)
+  - Use -model flag to explicitly use OpenRouter with a specific model
 
 Examples:
-  # Text-to-image generation
+  # Text-to-image generation (Gemini)
   nanobanana "a cute cat"
   nanobanana -o output.jpg "a sunset over mountains"
   nanobanana -aspect 16:9 -size 2K "cinematic landscape"
+
+  # Using OpenRouter
+  nanobanana -model google/gemini-3-pro-image-preview "a cute cat"
+  nanobanana -model google/gemini-2.5-flash-image-preview "a sunset"
 
   # Image editing (single input)
   nanobanana -i photo.jpg "transform into watercolor style"
