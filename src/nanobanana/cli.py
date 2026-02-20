@@ -8,76 +8,18 @@ from pathlib import Path
 from nanobanana import __version__
 from nanobanana.config import load_config, resolve_config
 from nanobanana.mime import extension_from_mime
+from nanobanana.templates import (
+    COMMANDS,
+    format_command_help,
+    format_help_overview,
+    get_command,
+)
 
+# All known subcommand names plus pseudo-commands
+_KNOWN_COMMANDS = frozenset(COMMANDS) | {"help", "version"}
 
-USAGE_TEXT = """\
-nanobanana - Generate images using Gemini or OpenRouter API
-
-Usage:
-  nanobanana [options] "prompt"
-
-Options:
-  -i <file>      Input image file (can be repeated for multi-image composition)
-                  Supported formats: PNG, JPEG, WebP, GIF
-  -o <file>      Output filename (auto-generated if not specified)
-                  Extension auto-corrected to match API response format
-  -aspect <ratio> Aspect ratio (default: 1:1)
-                  Valid: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
-  -size <size>   Image size (default: 1K)
-                  Valid: 1K, 2K, 4K
-  -model <model> OpenRouter model (enables OpenRouter API)
-                  Default: google/gemini-3-pro-image-preview
-  -h             Show this help
-  -version       Show version
-
-Environment:
-  GEMINI_API_KEY      Gemini API key
-  OPENROUTER_API_KEY  OpenRouter API key
-
-Config File:
-  Location: $XDG_CONFIG_HOME/nanobanana/config.json (default: ~/.config/nanobanana/config.json)
-
-  Example config:
-    {
-      "api": "openrouter",
-      "model": "google/gemini-3-pro-image-preview",
-      "aspect": "16:9",
-      "size": "2K"
-    }
-
-  Fields:
-    api     - "gemini" or "openrouter" (default: gemini)
-    model   - OpenRouter model name (only used with openrouter)
-    aspect  - Default aspect ratio
-    size    - Default image size
-
-Priority (highest to lowest):
-  1. CLI flags
-  2. Config file
-  3. Environment variables (for API keys only)
-  4. Built-in defaults
-
-Examples:
-  # Text-to-image generation (Gemini)
-  nanobanana "a cute cat"
-  nanobanana -o output.jpg "a sunset over mountains"
-  nanobanana -aspect 16:9 -size 2K "cinematic landscape"
-
-  # Using OpenRouter
-  nanobanana -model google/gemini-3-pro-image-preview "a cute cat"
-  nanobanana -model google/gemini-2.5-flash-image-preview "a sunset"
-
-  # Image editing (single input)
-  nanobanana -i photo.jpg "transform into watercolor style"
-  nanobanana -i portrait.jpg "make it look like a Van Gogh painting"
-
-  # Multi-image composition
-  nanobanana -i background.jpg -i subject.jpg "place subject in the scene"
-  nanobanana -i dress.jpg -i model.jpg "show the dress on the model"
-
-  # Combined options
-  nanobanana -i input.jpg -aspect 16:9 -size 2K -o output.jpg "cinematic edit"
-"""
+# Flags that consume the next argument as their value
+_VALUE_FLAGS = frozenset({"-i", "-o", "-aspect", "-size", "-model"})
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -101,21 +43,59 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _extract_subcommand(argv: list[str]) -> tuple[str, list[str]]:
+    """Extract subcommand from argv if the first non-flag arg is a known command.
+
+    Returns (command_name, remaining_argv). If no subcommand found,
+    returns ("", original_argv).
+    """
+    # Find the first positional argument (not starting with -)
+    skip_next = False
+    for idx, arg in enumerate(argv):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg.startswith("-"):
+            if arg in _VALUE_FLAGS:
+                skip_next = True  # next arg is the flag's value, not a positional
+            continue
+        if arg in _KNOWN_COMMANDS:
+            return arg, argv[:idx] + argv[idx + 1:]
+        # First positional arg is not a command — treat as free prompt
+        break
+    return "", argv
+
+
 def print_usage() -> None:
     """Print usage text to stderr."""
-    sys.stderr.write(USAGE_TEXT)
+    sys.stderr.write(format_help_overview())
 
 
-def run() -> None:
+def run(argv: list[str] | None = None) -> None:
     """Main CLI logic. Raises RuntimeError on errors."""
-    parser = build_parser()
-    args = parser.parse_args()
+    if argv is None:
+        argv = sys.argv[1:]
 
-    if args.show_version:
+    # Extract subcommand before argparse sees the args
+    command_name, remaining_argv = _extract_subcommand(argv)
+
+    parser = build_parser()
+    args = parser.parse_args(remaining_argv)
+
+    # Handle pseudo-commands
+    if command_name == "version" or args.show_version:
         print(f"nanobanana {__version__}")
         return
 
-    if args.show_help:
+    if command_name == "help" or args.show_help:
+        # "nanobanana help <cmd>" — show help for specific command
+        if command_name == "help" and args.prompt:
+            topic = args.prompt[0]
+            cmd = get_command(topic)
+            if cmd:
+                sys.stderr.write(format_command_help(cmd))
+                return
+            raise RuntimeError(f"unknown command: {topic}")
         print_usage()
         return
 
@@ -123,21 +103,40 @@ def run() -> None:
         print_usage()
         raise RuntimeError("no prompt provided")
 
-    prompt = " ".join(args.prompt)
+    user_prompt = " ".join(args.prompt)
+
+    # Look up command (default to "generate" for free prompts)
+    command = get_command(command_name) if command_name else None
+
+    # Apply command defaults for aspect/size if user didn't set flags
+    if command:
+        effective_aspect_flag = args.aspect or command.default_aspect
+        effective_size_flag = args.size or command.default_size
+    else:
+        effective_aspect_flag = args.aspect
+        effective_size_flag = args.size
 
     # Load config file
     file_config = load_config()
 
     # Resolve configuration
     aspect, size, api_config = resolve_config(
-        aspect_flag=args.aspect,
-        size_flag=args.size,
+        aspect_flag=effective_aspect_flag,
+        size_flag=effective_size_flag,
         model_flag=args.model,
         file_config=file_config,
     )
 
+    # Apply template to wrap the user prompt
+    if command:
+        prompt = command.apply(user_prompt, aspect=aspect, size=size)
+    else:
+        prompt = user_prompt
+
     print("Generating image...")
-    print(f"  Prompt: {prompt}")
+    if command and command.name != "generate":
+        print(f"  Command: {command.name}")
+    print(f"  Prompt: {user_prompt}")
     if args.input_images:
         print(f"  Inputs: {', '.join(args.input_images)}")
     print(f"  Aspect: {aspect}")

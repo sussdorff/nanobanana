@@ -14,7 +14,7 @@ Nanobanana is a Python CLI tool that wraps Google's Gemini image generation API.
 
 ## Architecture
 
-- **Package layout**: `src/nanobanana/` with 6 focused modules
+- **Package layout**: `src/nanobanana/` with 7 focused modules
 - **Dependencies**: `google-genai` (Gemini SDK), `httpx` (OpenRouter HTTP client)
 - **Dev deps**: `pytest`
 - **Build**: `hatchling` backend, `uv` toolchain
@@ -27,7 +27,8 @@ Nanobanana is a Python CLI tool that wraps Google's Gemini image generation API.
 src/nanobanana/
   __init__.py       # Version via importlib.metadata
   __main__.py       # python -m nanobanana
-  cli.py            # argparse, run(), main(), print_usage()
+  cli.py            # argparse, subcommand routing, run(), main()
+  templates.py      # Command dataclass, COMMANDS dict, prompt templates
   gemini.py         # Gemini via google-genai SDK
   openrouter.py     # OpenRouter via httpx
   config.py         # XDG config, validation, resolution
@@ -35,13 +36,14 @@ src/nanobanana/
 tests/
   test_mime.py      # MIME/extension tests
   test_config.py    # Config validation + resolution tests
-  test_cli.py       # CLI flag parsing tests
+  test_cli.py       # CLI flag parsing + subcommand routing tests
   test_api.py       # Request building tests (no network)
 ```
 
 ## Key Modules
 
-- **`cli.py`** — Entry point. `build_parser()` creates argparse with single-dash flags (`-aspect`, `-size`, `-model`, `-i`, `-o`). `run()` orchestrates config loading, validation, API call, and file output. `main()` wraps `run()` with error handling.
+- **`cli.py`** — Entry point. `_extract_subcommand()` detects subcommands before argparse. `build_parser()` creates argparse with single-dash flags. `run()` orchestrates subcommand dispatch, template application, config loading, API call, and file output. `main()` wraps `run()` with error handling.
+- **`templates.py`** — `Command` dataclass (frozen, slots) with name, description, defaults, and template string. `COMMANDS` dict maps names to commands. `apply()` wraps user prompts in structured TASK/SOURCE MATERIAL/STYLE/LAYOUT/OUTPUT RULES blocks.
 - **`config.py`** — Constants (valid aspect ratios, sizes, model names). `FileConfig` dataclass for JSON config. `resolve_config()` applies priority: CLI > config file > env > defaults.
 - **`gemini.py`** — Uses `google.genai.Client` for image generation. Passes input images as `Part.from_bytes()`, configures `response_modalities=["IMAGE", "TEXT"]`.
 - **`openrouter.py`** — Uses `httpx.post()` with data URL encoding for images. Parses data URL response to extract image bytes + MIME type.

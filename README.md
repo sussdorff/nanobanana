@@ -114,8 +114,41 @@ nanobanana() {
 ## Usage
 
 ```bash
-nanobanana [options] "prompt"
+nanobanana <command> [options] "prompt"
+nanobanana [options] "prompt"            # defaults to free-form generation
 ```
+
+### Commands
+
+Each command wraps your prompt in an optimized template with sensible defaults.
+
+**Design Exploration:**
+
+| Command | Description | Default Aspect | Default Size |
+|---------|-------------|----------------|--------------|
+| `dashboard` | KPI/analytics dashboard mockup | 16:9 | 2K |
+| `moodboard` | Website/app moodboard collage | 1:1 | 2K |
+| `explore` | Same concept in 4 style variations | 1:1 | 2K |
+| `wireframe` | UI wireframe or screen layout | 16:9 | 2K |
+
+**Content Creation:**
+
+| Command | Description | Default Aspect | Default Size |
+|---------|-------------|----------------|--------------|
+| `slide` | Presentation slide | 16:9 | 2K |
+| `social` | Social media post image | 1:1 | 2K |
+| `icon` | App icon | 1:1 | 1K |
+| `architecture` | System/cloud architecture diagram | 16:9 | 2K |
+
+**Base:**
+
+| Command | Description |
+|---------|-------------|
+| `generate` | Free-form prompt (explicit version of default) |
+| `help` | Show help for all commands or a specific command |
+| `version` | Show version |
+
+If the first argument is not a known command, it is treated as a free-form prompt (backwards compatible).
 
 ### Options
 
@@ -123,8 +156,8 @@ nanobanana [options] "prompt"
 |------|-------------|---------|
 | `-i <file>` | Input image (repeatable for multiple images) | none |
 | `-o <file>` | Output filename | `image_YYYYMMDD_HHMMSS.png` |
-| `-aspect <ratio>` | Aspect ratio | `1:1` |
-| `-size <size>` | Image size | `1K` |
+| `-aspect <ratio>` | Aspect ratio (overrides command default) | `1:1` |
+| `-size <size>` | Image size (overrides command default) | `1K` |
 | `-model <model>` | OpenRouter model (enables OpenRouter API) | `google/gemini-3-pro-image-preview` |
 | `-h` | Show help | - |
 | `-version` | Show version | - |
@@ -147,10 +180,45 @@ PNG, JPEG, WebP, GIF
 
 ## Examples
 
-### Text-to-image
+### Subcommands
 
 ```bash
-# Simple generation
+# Dashboard mockup (16:9, 2K by default)
+nanobanana dashboard "SaaS metrics with MRR, churn rate, and user growth"
+
+# Presentation slide
+nanobanana slide "Q4 revenue highlights: 40% YoY growth, 3 new enterprise clients"
+
+# App icon
+nanobanana icon "podcast app with microphone and sound waves"
+
+# Architecture diagram
+nanobanana architecture "microservices with API gateway, 3 services, Redis cache, PostgreSQL"
+
+# Design exploration (4 style variations)
+nanobanana explore "landing page hero for a meditation app"
+
+# Moodboard
+nanobanana moodboard "fintech app targeting young professionals"
+
+# Wireframe
+nanobanana wireframe "settings page with account, notifications, and billing"
+
+# Social media post
+nanobanana social "product launch announcement for an AI writing tool"
+
+# Override command defaults
+nanobanana dashboard -size 4K "quarterly revenue breakdown"
+nanobanana social -aspect 9:16 "instagram story for product launch"
+
+# Get help for a specific command
+nanobanana help dashboard
+```
+
+### Free-form generation
+
+```bash
+# Simple generation (no command = free-form)
 nanobanana "a cute cat sitting on a windowsill"
 
 # With aspect ratio and size
