@@ -148,7 +148,7 @@ OUTPUT RULES
     ),
     "slide": Command(
         name="slide",
-        description="Presentation slide",
+        description="Presentation slide (20+ subtemplates for board decks)",
         default_aspect="16:9",
         default_size="2K",
         template="""\
@@ -314,6 +314,7 @@ def format_help_overview() -> str:
         "  -version        Show version",
         "",
         'Run "nanobanana help <command>" for details on a specific command.',
+        'Run "nanobanana help slide templates" to list board deck subtemplates.',
     ])
     return "\n".join(lines) + "\n"
 
@@ -351,6 +352,11 @@ def format_command_help(cmd: Command) -> str:
             lines.append(f'  nanobanana wireframe "settings page with account, notifications, and billing sections"')
         case "slide":
             lines.append(f'  nanobanana slide "Q4 revenue highlights: 40% YoY growth, 3 new enterprise clients"')
+            lines.append(f'  nanobanana slide funnel "our SaaS product funnel"')
+            lines.append(f'  nanobanana slide arr "Q4 2025 ARR bridge"')
+            lines.append("")
+            lines.append("This command has 20 board deck subtemplates. Run:")
+            lines.append('  nanobanana help slide templates')
         case "social":
             lines.append(f'  nanobanana social "product launch announcement for a new AI writing tool"')
         case "icon":

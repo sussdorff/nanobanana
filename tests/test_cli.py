@@ -4,6 +4,7 @@ import pytest
 
 from nanobanana.cli import build_parser, _extract_subcommand
 from nanobanana.mime import extension_from_mime
+from nanobanana.slide_templates import SLIDE_TEMPLATES, get_slide_template, format_slide_help
 from nanobanana.templates import COMMANDS, get_command, format_help_overview, format_command_help
 
 
@@ -298,3 +299,91 @@ class TestBackwardsCompatibility:
         parser = build_parser()
         args = parser.parse_args(rest)
         assert args.show_help is True
+
+
+# --- Slide subtemplate tests ---
+
+class TestSlideSubtemplates:
+    """Tests for slide subtemplate routing and template application."""
+
+    def test_slide_subtemplate_lookup(self) -> None:
+        """Known slide subtemplates should be found."""
+        tmpl = get_slide_template("funnel")
+        assert tmpl is not None
+        assert tmpl.name == "funnel"
+        assert tmpl.title == "Funnel Diagnostic + Hypotheses Dashboard"
+
+    def test_slide_subtemplate_unknown_returns_none(self) -> None:
+        """Unknown names should return None."""
+        assert get_slide_template("nonexistent") is None
+
+    def test_all_20_subtemplates_exist(self) -> None:
+        """All 20 expected subtemplates should be registered."""
+        expected = {
+            "funnel", "ost", "arr", "retention", "pipeline", "okr", "exec",
+            "scenario", "churn", "rice", "winloss", "tam", "buildvsbuy",
+            "raci", "bets", "pricing", "capacity", "voc", "release", "skills",
+        }
+        assert set(SLIDE_TEMPLATES.keys()) == expected
+
+    def test_slide_subtemplate_contains_user_prompt(self) -> None:
+        """Subtemplate should inject user prompt into SOURCE MATERIAL."""
+        tmpl = get_slide_template("arr")
+        assert tmpl is not None
+        result = tmpl.template.format(user_prompt="Q4 2025 ARR bridge", size="2K")
+        assert "Q4 2025 ARR bridge" in result
+        assert "SOURCE MATERIAL" in result
+        assert "TASK" in result
+
+    def test_slide_subtemplate_injects_size(self) -> None:
+        """Subtemplate should inject size into OUTPUT RULES."""
+        tmpl = get_slide_template("okr")
+        assert tmpl is not None
+        result = tmpl.template.format(user_prompt="test", size="2K")
+        assert "2K" in result
+
+    @pytest.mark.parametrize("name", list(SLIDE_TEMPLATES.keys()))
+    def test_all_subtemplates_format_without_error(self, name: str) -> None:
+        """Every subtemplate must format with user_prompt and size without errors."""
+        tmpl = get_slide_template(name)
+        assert tmpl is not None
+        result = tmpl.template.format(user_prompt="test prompt", size="2K")
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "test prompt" in result
+
+    def test_slide_subtemplate_routing_extracts_command(self) -> None:
+        """'slide funnel prompt' should extract 'slide' as command."""
+        cmd, rest = _extract_subcommand(["slide", "funnel", "my prompt"])
+        assert cmd == "slide"
+        assert rest == ["funnel", "my prompt"]
+
+    def test_slide_without_subtemplate_still_works(self) -> None:
+        """'slide prompt' without subtemplate should use generic slide."""
+        cmd, rest = _extract_subcommand(["slide", "my slide content"])
+        assert cmd == "slide"
+        assert rest == ["my slide content"]
+
+    def test_slide_help_lists_all_subtemplates(self) -> None:
+        """format_slide_help should list all 20 subtemplates."""
+        help_text = format_slide_help()
+        for name in SLIDE_TEMPLATES:
+            assert name in help_text
+
+    def test_slide_help_includes_usage(self) -> None:
+        """format_slide_help should show usage examples."""
+        help_text = format_slide_help()
+        assert "nanobanana slide funnel" in help_text
+        assert "nanobanana slide arr" in help_text
+
+    def test_help_overview_mentions_subtemplates(self) -> None:
+        """The help overview should hint at slide subtemplates."""
+        overview = format_help_overview()
+        assert "subtemplates" in overview.lower() or "subtemplate" in overview.lower()
+
+    def test_slide_command_help_mentions_subtemplates(self) -> None:
+        """The slide command help should reference subtemplates."""
+        cmd = get_command("slide")
+        assert cmd is not None
+        help_text = format_command_help(cmd)
+        assert "subtemplate" in help_text.lower() or "funnel" in help_text

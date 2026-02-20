@@ -8,6 +8,7 @@ from pathlib import Path
 from nanobanana import __version__
 from nanobanana.config import load_config, resolve_config
 from nanobanana.mime import extension_from_mime
+from nanobanana.slide_templates import SLIDE_TEMPLATES, format_slide_help, get_slide_template
 from nanobanana.templates import (
     COMMANDS,
     format_command_help,
@@ -91,6 +92,9 @@ def run(argv: list[str] | None = None) -> None:
         # "nanobanana help <cmd>" — show help for specific command
         if command_name == "help" and args.prompt:
             topic = args.prompt[0]
+            if topic == "slide" and len(args.prompt) > 1 and args.prompt[1] == "templates":
+                sys.stderr.write(format_slide_help())
+                return
             cmd = get_command(topic)
             if cmd:
                 sys.stderr.write(format_command_help(cmd))
@@ -102,6 +106,18 @@ def run(argv: list[str] | None = None) -> None:
     if not args.prompt:
         print_usage()
         raise RuntimeError("no prompt provided")
+
+    # Check for slide subtemplate: "slide funnel 'prompt'" -> subtemplate=funnel
+    slide_template = None
+    if command_name == "slide" and args.prompt:
+        candidate = args.prompt[0]
+        slide_template = get_slide_template(candidate)
+        if slide_template:
+            # Remove the subtemplate name from the prompt words
+            args.prompt = args.prompt[1:]
+            if not args.prompt:
+                print_usage()
+                raise RuntimeError("no prompt provided after slide subtemplate")
 
     user_prompt = " ".join(args.prompt)
 
@@ -128,13 +144,17 @@ def run(argv: list[str] | None = None) -> None:
     )
 
     # Apply template to wrap the user prompt
-    if command:
+    if slide_template:
+        prompt = slide_template.template.format(user_prompt=user_prompt, size=size)
+    elif command:
         prompt = command.apply(user_prompt, aspect=aspect, size=size)
     else:
         prompt = user_prompt
 
     print("Generating image...")
-    if command and command.name != "generate":
+    if slide_template:
+        print(f"  Command: slide ({slide_template.name})")
+    elif command and command.name != "generate":
         print(f"  Command: {command.name}")
     print(f"  Prompt: {user_prompt}")
     if args.input_images:
