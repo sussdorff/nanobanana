@@ -9,6 +9,7 @@ from nanobanana.config import (
     VALID_ASPECT_RATIOS,
     VALID_SIZES,
     FileConfig,
+    _run_key_command,
     load_config,
     resolve_config,
 )
@@ -168,3 +169,73 @@ def test_openrouter_fallback_when_only_or_key(monkeypatch: pytest.MonkeyPatch) -
     )
     assert config.use_openrouter is True
     assert config.model == "google/gemini-3-pro-image-preview"
+
+
+# --- key_command ---
+
+def test_run_key_command_success() -> None:
+    assert _run_key_command("echo secret-key-123") == "secret-key-123"
+
+
+def test_run_key_command_failure() -> None:
+    with pytest.raises(RuntimeError, match="key_command failed"):
+        _run_key_command("false")
+
+
+def test_run_key_command_empty_output() -> None:
+    with pytest.raises(RuntimeError, match="key_command returned empty output"):
+        _run_key_command("echo ''")
+
+
+def test_key_command_used_for_openrouter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """key_command provides API key when env var is not set."""
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    fc = FileConfig(api="openrouter", key_command="echo my-secret-key")
+    _, _, config = resolve_config(
+        aspect_flag="", size_flag="", model_flag="", file_config=fc,
+    )
+    assert config.use_openrouter is True
+    assert config.api_key == "my-secret-key"
+
+
+def test_key_command_used_for_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    """key_command provides Gemini API key when env var is not set."""
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    fc = FileConfig(key_command="echo gemini-secret")
+    _, _, config = resolve_config(
+        aspect_flag="", size_flag="", model_flag="", file_config=fc,
+    )
+    assert config.use_openrouter is False
+    assert config.api_key == "gemini-secret"
+
+
+def test_env_var_takes_priority_over_key_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Environment variable should be used even when key_command is set."""
+    monkeypatch.setenv("GEMINI_API_KEY", "env-key")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    fc = FileConfig(key_command="echo should-not-be-called")
+    _, _, config = resolve_config(
+        aspect_flag="", size_flag="", model_flag="", file_config=fc,
+    )
+    assert config.api_key == "env-key"
+
+
+def test_load_config_with_key_command(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_dir = tmp_path / "nanobanana"
+    config_dir.mkdir()
+    config_file = config_dir / "config.json"
+    config_file.write_text(json.dumps({
+        "api": "openrouter",
+        "key_command": "op read 'op://API Keys/OpenRouter/credential'",
+    }))
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+
+    fc = load_config()
+    assert fc is not None
+    assert fc.key_command == "op read 'op://API Keys/OpenRouter/credential'"

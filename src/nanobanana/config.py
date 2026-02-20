@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,6 +24,7 @@ class FileConfig:
     model: str = ""
     aspect: str = ""
     size: str = ""
+    key_command: str = ""
 
 
 @dataclass
@@ -59,7 +61,34 @@ def load_config() -> FileConfig | None:
         model=data.get("model", ""),
         aspect=data.get("aspect", ""),
         size=data.get("size", ""),
+        key_command=data.get("key_command", ""),
     )
+
+
+def _run_key_command(command: str) -> str:
+    """Run a shell command and return its stdout, stripped.
+
+    Raises RuntimeError if the command fails.
+    """
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(f"key_command timed out: {command}") from e
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        raise RuntimeError(f"key_command failed: {stderr or f'exit code {result.returncode}'}")
+
+    key = result.stdout.strip()
+    if not key:
+        raise RuntimeError(f"key_command returned empty output: {command}")
+    return key
 
 
 def resolve_config(
@@ -79,6 +108,7 @@ def resolve_config(
     size = "1K"
     model = ""
     use_openrouter = False
+    key_command = ""
 
     # Apply config file values
     if file_config is not None:
@@ -90,6 +120,8 @@ def resolve_config(
             model = file_config.model
         if file_config.api == "openrouter":
             use_openrouter = True
+        if file_config.key_command:
+            key_command = file_config.key_command
 
     # Apply CLI flags (override config)
     if aspect_flag:
@@ -101,12 +133,15 @@ def resolve_config(
         use_openrouter = True  # -model flag implies OpenRouter
 
     # Determine which API to use and validate API key
+    # Priority: env var > key_command
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
 
     config = APIConfig()
 
     if use_openrouter or model or (openrouter_key and not gemini_key):
+        if not openrouter_key and key_command:
+            openrouter_key = _run_key_command(key_command)
         if not openrouter_key:
             raise RuntimeError(
                 "OPENROUTER_API_KEY environment variable not set "
@@ -116,6 +151,8 @@ def resolve_config(
         config.api_key = openrouter_key
         config.model = model if model else OPENROUTER_DEFAULT_MODEL
     else:
+        if not gemini_key and key_command:
+            gemini_key = _run_key_command(key_command)
         if not gemini_key:
             raise RuntimeError(
                 "GEMINI_API_KEY environment variable not set "
