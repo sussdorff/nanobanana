@@ -9,38 +9,32 @@ A lightweight CLI tool for generating and editing images using Google's Gemini A
 - **Text-to-image generation** - Create images from text prompts
 - **Image editing** - Transform existing images with text instructions
 - **Multi-image composition** - Combine multiple input images
-- **Flexible output** - 9 aspect ratios and 3 size options
+- **Flexible output** - 10 aspect ratios and 3 size options
 - **Multiple API backends** - Use Gemini API directly or via OpenRouter
 
 ## Requirements
 
-- Go 1.25+ (for building from source)
+- Python 3.14+
 - Google Gemini API key OR OpenRouter API key
 
 ## Installation
 
-### Homebrew (macOS/Linux)
+### With uv (recommended)
 
 ```bash
-brew tap skorfmann/nanobanana
-brew install nanobanana
+uv tool install nanobanana
 ```
 
-To upgrade to the latest version:
+To upgrade:
 
 ```bash
-brew upgrade nanobanana
+uv tool upgrade nanobanana
 ```
 
-### From GitHub Releases
-
-Download the latest binary for your platform from the [Releases](../../releases) page.
+### With pip
 
 ```bash
-# Example for macOS arm64
-curl -L -o nanobanana https://github.com/skorfmann/nanobanana/releases/latest/download/nanobanana-darwin-arm64
-chmod +x nanobanana
-./nanobanana -version
+pip install nanobanana
 ```
 
 ### From source
@@ -48,7 +42,7 @@ chmod +x nanobanana
 ```bash
 git clone https://github.com/skorfmann/nanobanana.git
 cd nanobanana
-go build -o nanobanana main.go
+uv run nanobanana "test prompt"
 ```
 
 ## Setup
@@ -113,7 +107,7 @@ nanobanana() {
   if [[ -z "$OPENROUTER_API_KEY" ]]; then
     export OPENROUTER_API_KEY="$(op read 'op://API Keys/OpenRouter/credential')"
   fi
-  /path/to/nanobanana "$@"
+  command nanobanana "$@"
 }
 ```
 
@@ -196,7 +190,7 @@ nanobanana -i background.png -i subject.png "place the subject in the scene"
 nanobanana -i content.jpg -i style.jpg "apply the style to the content image"
 ```
 
-## Examples
+## Examples Directory
 
 The `examples/` folder contains working examples with generated images:
 
@@ -204,15 +198,15 @@ The `examples/` folder contains working examples with generated images:
 Simple text-to-image generation.
 
 ```bash
-./nanobanana -o basic_example.png "a friendly yellow banana character"
+nanobanana -o basic_example.png "a friendly yellow banana character"
 ```
 
 ### presentation/
 Generate presentation slides from text prompts.
 
 ```bash
-./nanobanana -aspect 16:9 -size 2K -o slide_01.png "title slide prompt..."
-./nanobanana -aspect 16:9 -size 2K -o slide_02.png "content slide prompt..."
+nanobanana -aspect 16:9 -size 2K -o slide_01.png "title slide prompt..."
+nanobanana -aspect 16:9 -size 2K -o slide_02.png "content slide prompt..."
 ```
 
 ### branded-presentation/
@@ -220,11 +214,11 @@ Use a template image as a style reference for consistent branding across slides.
 
 ```bash
 # 1. Generate a style template first
-./nanobanana -aspect 16:9 -size 2K -o template.png "slide template with brand colors..."
+nanobanana -aspect 16:9 -size 2K -o template.png "slide template with brand colors..."
 
 # 2. Generate slides using template as reference
-./nanobanana -i template.png -aspect 16:9 -size 2K -o slide_01.png "title slide..."
-./nanobanana -i template.png -aspect 16:9 -size 2K -o slide_02.png "content slide..."
+nanobanana -i template.png -aspect 16:9 -size 2K -o slide_01.png "title slide..."
+nanobanana -i template.png -aspect 16:9 -size 2K -o slide_02.png "content slide..."
 ```
 
 Each example includes a README and the markdown source used to generate the images. See the `examples/` folder for full prompts and generated outputs.
@@ -255,6 +249,17 @@ See [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing) for curr
 ### OpenRouter
 
 Pricing varies by model. See [OpenRouter Pricing](https://openrouter.ai/models) for current rates.
+
+## Development
+
+```bash
+# Run tests
+uv run pytest -v
+
+# Run the CLI locally
+uv run nanobanana -version
+uv run nanobanana -h
+```
 
 ## License
 

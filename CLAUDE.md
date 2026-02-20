@@ -2,7 +2,7 @@
 
 This file provides context for Claude Code when working on this project.
 
-## ⚠️ IMPORTANT: API Model
+## IMPORTANT: API Model
 
 **Model**: `gemini-3-pro-image-preview`
 
@@ -10,56 +10,59 @@ This is the specific Gemini model used for image generation. Do NOT change this 
 
 ## Project Overview
 
-Nanobanana is a single-file Go CLI tool that wraps Google's Gemini image generation API. It enables text-to-image generation, image editing, and multi-image composition.
+Nanobanana is a Python CLI tool that wraps Google's Gemini image generation API. It enables text-to-image generation, image editing, and multi-image composition.
 
 ## Architecture
 
-- **Single file**: All code lives in `main.go` (~710 lines)
-- **Zero dependencies**: Uses only Go standard library
-- **Cross-platform**: Builds for Linux, macOS, and Windows (amd64/arm64)
-- **CI/CD**: GitHub Actions releases on every push to main
+- **Package layout**: `src/nanobanana/` with 6 focused modules
+- **Dependencies**: `google-genai` (Gemini SDK), `httpx` (OpenRouter HTTP client)
+- **Dev deps**: `pytest`
+- **Build**: `hatchling` backend, `uv` toolchain
+- **Distribution**: PyPI via `uv tool install nanobanana`
+- **CI/CD**: GitHub Actions — test + publish to PyPI on every push to main
 
-## Code Structure (main.go)
+## Code Structure
 
-| Section | Description |
-|---------|-------------|
-| Type definitions | Request/response structs for Gemini and OpenRouter APIs |
-| Configuration | Constants (API endpoints, valid ratios/sizes) |
-| `FileConfig` | XDG config file structure and loading |
-| `main()` / `run()` | CLI orchestration |
-| `generateImageGemini()` | Direct Gemini API interaction |
-| `generateImageOpenRouter()` | OpenRouter API interaction |
-| MIME helpers | Extension/MIME type conversions |
-| `loadImage()` | File loading for input images |
-| `printUsage()` | Help text |
+```
+src/nanobanana/
+  __init__.py       # Version via importlib.metadata
+  __main__.py       # python -m nanobanana
+  cli.py            # argparse, run(), main(), print_usage()
+  gemini.py         # Gemini via google-genai SDK
+  openrouter.py     # OpenRouter via httpx
+  config.py         # XDG config, validation, resolution
+  mime.py           # MIME <-> extension mapping
+tests/
+  test_mime.py      # MIME/extension tests
+  test_config.py    # Config validation + resolution tests
+  test_cli.py       # CLI flag parsing tests
+  test_api.py       # Request building tests (no network)
+```
 
-## Key Types
+## Key Modules
 
-- `Version` - Build version string (set via `-ldflags`)
-- `stringSlice` - Custom flag type for repeatable `-i` flags
-- `FileConfig` - XDG config file structure (`api`, `model`, `aspect`, `size`)
-- `APIConfig` - Runtime API configuration
-- `GenerateRequest` / `GenerateResponse` - Gemini API payload structures
-- `OpenRouterRequest` / `OpenRouterResponse` - OpenRouter API payload structures
+- **`cli.py`** — Entry point. `build_parser()` creates argparse with single-dash flags (`-aspect`, `-size`, `-model`, `-i`, `-o`). `run()` orchestrates config loading, validation, API call, and file output. `main()` wraps `run()` with error handling.
+- **`config.py`** — Constants (valid aspect ratios, sizes, model names). `FileConfig` dataclass for JSON config. `resolve_config()` applies priority: CLI > config file > env > defaults.
+- **`gemini.py`** — Uses `google.genai.Client` for image generation. Passes input images as `Part.from_bytes()`, configures `response_modalities=["IMAGE", "TEXT"]`.
+- **`openrouter.py`** — Uses `httpx.post()` with data URL encoding for images. Parses data URL response to extract image bytes + MIME type.
+- **`mime.py`** — Bidirectional mapping: `extension_from_mime()` and `mime_from_extension()`.
 
-## Build Commands
+## Build & Run Commands
 
 ```bash
-# Local dev build (version = "dev")
-go build -o nanobanana main.go
+# Run tests
+uv run pytest -v
 
-# Release build with version injection
-VERSION=$(date -u +%Y%m%d.%H%M%S)
-go build -ldflags="-s -w -X main.Version=$VERSION" -o nanobanana main.go
+# Run the CLI
+uv run nanobanana "prompt"
+uv run nanobanana -version
+uv run nanobanana -h
 
-# Cross-compile for specific platform
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=$VERSION" -o nanobanana-linux-amd64 main.go
+# Build package
+uv build
 
-# Run
-./nanobanana "prompt"
-
-# Check version
-./nanobanana -version
+# Install as tool
+uv tool install .
 ```
 
 ## Configuration
@@ -79,8 +82,8 @@ Location: `$XDG_CONFIG_HOME/nanobanana/config.json` (default: `~/.config/nanoban
 
 ### Environment Variables
 
-- `GEMINI_API_KEY` - Google Gemini API key
-- `OPENROUTER_API_KEY` - OpenRouter API key
+- `GEMINI_API_KEY` — Google Gemini API key
+- `OPENROUTER_API_KEY` — OpenRouter API key
 
 ### Priority (highest to lowest)
 
@@ -92,9 +95,9 @@ Location: `$XDG_CONFIG_HOME/nanobanana/config.json` (default: `~/.config/nanoban
 ## API Details
 
 - **Model**: `gemini-3-pro-image-preview`
-- **Endpoint**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent`
 - **Timeout**: 120 seconds
-- **Auth**: API key passed via `x-goog-api-key` header
+- **Gemini auth**: API key via `google.genai.Client(api_key=...)`
+- **OpenRouter auth**: Bearer token in Authorization header
 
 ### Pricing (approximate)
 
@@ -108,102 +111,56 @@ See [Gemini API Pricing](https://ai.google.dev/gemini-api/docs/pricing) for curr
 ## Common Tasks
 
 ### Adding a new aspect ratio
-1. Add to `validAspectRatios` map (line ~40)
-2. Update help text in `printUsage()`
+1. Add to `VALID_ASPECT_RATIOS` in `config.py`
+2. Update help text in `cli.py` (`USAGE_TEXT`)
 
 ### Adding a new size option
-1. Add to `validSizes` map (line ~48)
-2. Update help text in `printUsage()`
+1. Add to `VALID_SIZES` in `config.py`
+2. Update help text in `cli.py` (`USAGE_TEXT`)
 
 ### Adding a new image format
-1. Add case to `mimeFromExtension()` (line ~291)
-2. Add case to `extensionFromMime()` (line ~278)
+1. Add to `extension_from_mime()` in `mime.py`
+2. Add to `mime_from_extension()` in `mime.py`
 
 ## Testing
 
-### Unit Tests
-
-Run automated tests:
-
 ```bash
-go test -v ./...
+uv run pytest -v
 ```
 
 Tests cover:
-- `stringSlice` flag type (String, Set methods)
-- `extensionFromMime` - MIME type to extension mapping
-- `mimeFromExtension` - extension to MIME type mapping
-- `validAspectRatios` - aspect ratio validation
-- `validSizes` - size validation
+- `extension_from_mime` — MIME type to extension mapping
+- `mime_from_extension` — extension to MIME type mapping
+- `VALID_ASPECT_RATIOS` — aspect ratio validation
+- `VALID_SIZES` — size validation
+- Config resolution priority (CLI > config file > env > defaults)
+- Config file loading from XDG path
+- CLI flag parsing including repeatable `-i`
 - Extension auto-correction logic
-
-### Manual Testing
-
-```bash
-# Text-to-image
-./nanobanana "test prompt"
-
-# Image editing
-./nanobanana -i test.jpg "edit instruction"
-
-# Check output file was created
-ls -la image_*.jpg
-```
+- API request building (data URLs, missing files)
 
 ## Error Handling
 
-Errors are wrapped with context using `fmt.Errorf("context: %w", err)`. The main error paths:
-
-- Missing API key (`GEMINI_API_KEY` or `OPENROUTER_API_KEY`)
-- Invalid config file (parse error)
-- Invalid aspect ratio or size
-- Failed to load input image
-- API request failure
-- No image in API response
+Errors are raised as `RuntimeError` with descriptive messages. `main()` catches them, prints `Error: <message>` to stderr, and exits with code 1.
 
 ## Versioning
 
 - **Format**: `YYYYMMDD.HHMMSS` (e.g., `20260118.153045`)
-- **Local builds**: Show `dev` as version
-- **Release builds**: Version injected via `-ldflags="-X main.Version=$VERSION"`
-- **Check version**: `./nanobanana -version`
+- **Local/dev builds**: Show `dev` as version (via `importlib.metadata` fallback)
+- **Release builds**: Version stamped into `pyproject.toml` by CI before `uv build`
+- **Check version**: `nanobanana -version`
 
 ## Release Workflow
 
 GitHub Actions automatically creates releases on every push to main:
 
-1. **Trigger**: Push to `main` branch
-2. **Checks**: `go fmt` and `go vet`
-3. **Version**: Generated from UTC datetime
-4. **Build matrix**: 6 platform/arch combinations
-5. **Artifacts**: Binaries + `checksums.txt`
-6. **Release**: Created with datetime tag (e.g., `20260118.153045`)
-
-### Build Matrix
-
-| OS | Architecture | Binary Name |
-|----|--------------|-------------|
-| Linux | amd64 | `nanobanana-linux-amd64` |
-| Linux | arm64 | `nanobanana-linux-arm64` |
-| macOS | amd64 | `nanobanana-darwin-amd64` |
-| macOS | arm64 | `nanobanana-darwin-arm64` |
-| Windows | amd64 | `nanobanana-windows-amd64.exe` |
-| Windows | arm64 | `nanobanana-windows-arm64.exe` |
-
-### Workflow File
-
-Located at `.github/workflows/release.yml`
-
-### Homebrew Tap
-
-Releases automatically update the Homebrew tap at `skorfmann/homebrew-nanobanana`.
-
-```bash
-brew tap skorfmann/nanobanana
-brew install nanobanana
-```
-
-Requires `HOMEBREW_TAP_TOKEN` secret (PAT with `repo` scope).
+1. **Test job**: `uv run pytest -v`
+2. **Publish job** (after test passes):
+   - Generate version from UTC datetime
+   - Stamp version into `pyproject.toml`
+   - `uv build` → wheel + sdist
+   - `uv publish` → PyPI
+   - Create GitHub Release with install instructions
 
 ## Examples Directory
 
@@ -221,22 +178,22 @@ Each example has a README and markdown source with full prompts.
 
 ### Basic generation
 ```bash
-./nanobanana -o output.png "prompt"
+nanobanana -o output.png "prompt"
 ```
 
 ### Presentation slides (16:9, high-res)
 ```bash
-./nanobanana -aspect 16:9 -size 2K -o slide.png "prompt"
+nanobanana -aspect 16:9 -size 2K -o slide.png "prompt"
 ```
 
 ### Template-based consistency
 ```bash
 # Generate template first
-./nanobanana -aspect 16:9 -size 2K -o template.png "visual style template..."
+nanobanana -aspect 16:9 -size 2K -o template.png "visual style template..."
 
 # Use template as reference for each slide
-./nanobanana -i template.png -aspect 16:9 -size 2K -o slide_01.png "slide content..."
-./nanobanana -i template.png -aspect 16:9 -size 2K -o slide_02.png "slide content..."
+nanobanana -i template.png -aspect 16:9 -size 2K -o slide_01.png "slide content..."
+nanobanana -i template.png -aspect 16:9 -size 2K -o slide_02.png "slide content..."
 ```
 
 ## Workflow Pattern for Claude Code
