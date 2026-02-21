@@ -52,13 +52,13 @@ def _fetch_latest_version() -> str | None:
 
 
 def _run_upgrade() -> bool:
-    """Run uv tool upgrade. Returns True on success."""
+    """Run uv tool install --force --refresh to bypass cache. Returns True on success."""
     try:
         result = subprocess.run(
-            ["uv", "tool", "upgrade", "nanobanana-cli"],
+            ["uv", "tool", "install", "nanobanana-cli", "--force", "--refresh"],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
         )
         return result.returncode == 0
     except Exception:
@@ -100,11 +100,11 @@ def check_for_update(current_version: str, *, auto_update: bool = False) -> str 
                 else:
                     return (
                         f"Auto-update failed. Run manually:\n"
-                        f"  uv tool upgrade nanobanana-cli"
+                        f"  uv tool install nanobanana-cli --force --refresh"
                     )
             return (
                 f"Update available: {current_version} \u2192 {latest}\n"
-                f"Run: uv tool upgrade nanobanana-cli"
+                f"Run: uv tool install nanobanana-cli --force --refresh"
             )
     except Exception:
         pass

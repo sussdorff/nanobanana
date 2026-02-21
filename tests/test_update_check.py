@@ -59,7 +59,7 @@ class TestCheckForUpdate:
         hint = check_for_update("20260221.120000")
         assert hint is not None
         assert "20260222.120000" in hint
-        assert "uv tool upgrade" in hint
+        assert "uv tool install" in hint
 
     def test_stale_cache_triggers_fetch(self, tmp_path, monkeypatch) -> None:
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
