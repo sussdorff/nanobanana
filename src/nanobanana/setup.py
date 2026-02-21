@@ -105,6 +105,15 @@ def run_setup() -> None:
     if size != "1K":
         config["size"] = size
 
+    # 5. Auto-update
+    auto_update = _prompt_choice(
+        "Automatically update nanobanana when a new version is available?",
+        ["yes", "no"],
+        default="yes",
+    )
+    if auto_update == "yes":
+        config["auto_update"] = True
+
     # Write config
     import json
     config_path = write_config(config)
