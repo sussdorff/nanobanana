@@ -17,7 +17,7 @@ from nanobanana.templates import (
 )
 
 # All known subcommand names plus pseudo-commands
-_KNOWN_COMMANDS = frozenset(COMMANDS) | {"help", "version"}
+_KNOWN_COMMANDS = frozenset(COMMANDS) | {"help", "version", "install-skill"}
 
 # Flags that consume the next argument as their value
 _VALUE_FLAGS = frozenset({"-i", "-o", "-aspect", "-size", "-model"})
@@ -79,6 +79,17 @@ def run(argv: list[str] | None = None) -> None:
 
     # Extract subcommand before argparse sees the args
     command_name, remaining_argv = _extract_subcommand(argv)
+
+    # Handle install-skill before argparse (has its own --claude-dir flag)
+    if command_name == "install-skill":
+        from nanobanana.install_skill import install_skill
+        claude_dir = None
+        for i, arg in enumerate(remaining_argv):
+            if arg == "--claude-dir" and i + 1 < len(remaining_argv):
+                claude_dir = remaining_argv[i + 1]
+                break
+        install_skill(claude_dir)
+        return
 
     parser = build_parser()
     args = parser.parse_args(remaining_argv)

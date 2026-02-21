@@ -20,6 +20,9 @@ nanobanana = "nanobanana.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/nanobanana"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"skill/nanobanana" = "nanobanana/skill"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

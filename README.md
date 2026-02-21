@@ -19,7 +19,23 @@ A lightweight CLI tool for generating and editing images using Google's Gemini A
 
 ## Installation
 
-### From source (recommended — installs CLI + Claude Code skill)
+### Via uv (recommended)
+
+```bash
+uv tool install nanobanana-cli
+nanobanana install-skill
+```
+
+The first command installs the CLI. The second installs the Claude Code skill to `~/.claude/skills/nanobanana/`.
+
+### Via pip
+
+```bash
+pip install nanobanana-cli
+nanobanana install-skill
+```
+
+### From source
 
 ```bash
 git clone https://github.com/sussdorff/nanobanana.git
@@ -27,19 +43,7 @@ cd nanobanana
 ./install.sh
 ```
 
-This installs the CLI via `uv tool install` and copies the Claude Code skill to `~/.claude/skills/nanobanana/`. Run it again to upgrade both.
-
-### CLI only (via uv)
-
-```bash
-uv tool install nanobanana-cli
-```
-
-### CLI only (via pip)
-
-```bash
-pip install nanobanana-cli
-```
+`install.sh` does both steps in one go (CLI + skill).
 
 ## Setup
 

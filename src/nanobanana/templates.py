@@ -302,6 +302,7 @@ def format_help_overview() -> str:
     lines.extend([
         "",
         f"  {'help':<{max_name}}  Show help for all commands or a specific command",
+        f"  {'install-skill':<{max_name}}  Install Claude Code skill to ~/.claude/skills/",
         f"  {'version':<{max_name}}  Show version",
         "",
         "Options:",
@@ -315,6 +316,8 @@ def format_help_overview() -> str:
         "",
         'Run "nanobanana help <command>" for details on a specific command.',
         'Run "nanobanana help slide templates" to list board deck subtemplates.',
+        'Run "nanobanana install-skill" to install the Claude Code skill.',
+        'Run "nanobanana install-skill --claude-dir <path>" for a custom location.',
     ])
     return "\n".join(lines) + "\n"
 
