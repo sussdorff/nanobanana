@@ -25,6 +25,7 @@ class FileConfig:
     aspect: str = ""
     size: str = ""
     key_command: str = ""
+    api_key: str = ""
 
 
 @dataclass
@@ -62,6 +63,7 @@ def load_config() -> FileConfig | None:
         aspect=data.get("aspect", ""),
         size=data.get("size", ""),
         key_command=data.get("key_command", ""),
+        api_key=data.get("api_key", ""),
     )
 
 
@@ -133,13 +135,16 @@ def resolve_config(
         use_openrouter = True  # -model flag implies OpenRouter
 
     # Determine which API to use and validate API key
-    # Priority: env var > key_command
+    # Priority: env var > api_key from config > key_command
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    config_api_key = file_config.api_key if file_config else ""
 
     config = APIConfig()
 
     if use_openrouter or model or (openrouter_key and not gemini_key):
+        if not openrouter_key and config_api_key:
+            openrouter_key = config_api_key
         if not openrouter_key and key_command:
             openrouter_key = _run_key_command(key_command)
         if not openrouter_key:
@@ -151,6 +156,8 @@ def resolve_config(
         config.api_key = openrouter_key
         config.model = model if model else OPENROUTER_DEFAULT_MODEL
     else:
+        if not gemini_key and config_api_key:
+            gemini_key = config_api_key
         if not gemini_key and key_command:
             gemini_key = _run_key_command(key_command)
         if not gemini_key:
@@ -173,3 +180,21 @@ def resolve_config(
         raise RuntimeError(f"invalid size: {size} (valid: 1K, 2K, 4K)")
 
     return aspect, size, config
+
+
+def write_config(data: dict) -> Path:
+    """Write config JSON to the XDG config path. Creates directories as needed.
+
+    Returns the path written to. Raises RuntimeError on failure.
+    """
+    config_path = get_config_path()
+    if config_path is None:
+        raise RuntimeError("could not determine config path")
+
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(data, indent=2) + "\n")
+    except OSError as e:
+        raise RuntimeError(f"failed to write config file: {e}") from e
+
+    return config_path

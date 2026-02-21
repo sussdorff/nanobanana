@@ -17,7 +17,7 @@ from nanobanana.templates import (
 )
 
 # All known subcommand names plus pseudo-commands
-_KNOWN_COMMANDS = frozenset(COMMANDS) | {"help", "version", "install-skill"}
+_KNOWN_COMMANDS = frozenset(COMMANDS) | {"help", "version", "install-skill", "setup"}
 
 # Flags that consume the next argument as their value
 _VALUE_FLAGS = frozenset({"-i", "-o", "-aspect", "-size", "-model"})
@@ -91,6 +91,12 @@ def run(argv: list[str] | None = None) -> None:
         install_skill(claude_dir)
         return
 
+    # Handle setup before argparse
+    if command_name == "setup":
+        from nanobanana.setup import run_setup
+        run_setup()
+        return
+
     parser = build_parser()
     args = parser.parse_args(remaining_argv)
 
@@ -147,12 +153,21 @@ def run(argv: list[str] | None = None) -> None:
     file_config = load_config()
 
     # Resolve configuration
-    aspect, size, api_config = resolve_config(
-        aspect_flag=effective_aspect_flag,
-        size_flag=effective_size_flag,
-        model_flag=args.model,
-        file_config=file_config,
-    )
+    try:
+        aspect, size, api_config = resolve_config(
+            aspect_flag=effective_aspect_flag,
+            size_flag=effective_size_flag,
+            model_flag=args.model,
+            file_config=file_config,
+        )
+    except RuntimeError as e:
+        # If no config and no env vars, suggest setup wizard on TTY
+        if file_config is None and sys.stdin.isatty() and "API_KEY" in str(e):
+            print(
+                "No configuration found. Run 'nanobanana setup' to create one.",
+                file=sys.stderr,
+            )
+        raise
 
     # Apply template to wrap the user prompt
     if slide_template:
