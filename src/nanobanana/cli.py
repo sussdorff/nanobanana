@@ -161,12 +161,20 @@ def run(argv: list[str] | None = None) -> None:
             file_config=file_config,
         )
     except RuntimeError as e:
-        # If no config and no env vars, suggest setup wizard on TTY
-        if file_config is None and sys.stdin.isatty() and "API_KEY" in str(e):
-            print(
-                "No configuration found. Run 'nanobanana setup' to create one.",
-                file=sys.stderr,
-            )
+        # If no config and no env vars, offer setup wizard
+        if file_config is None and "API_KEY" in str(e):
+            if sys.stdin.isatty():
+                print(
+                    "\nNo configuration found. Starting setup wizard...\n",
+                    file=sys.stderr,
+                )
+                from nanobanana.setup import run_setup
+                run_setup()
+                return
+            else:
+                raise RuntimeError(
+                    "no configuration found. Run 'nanobanana setup' to create one"
+                ) from e
         raise
 
     # Apply template to wrap the user prompt
