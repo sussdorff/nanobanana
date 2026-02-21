@@ -27,6 +27,7 @@ class FileConfig:
     size: str = ""
     key_command: str = ""
     api_key: str = ""
+    auto_update: bool = False
 
 
 @dataclass
@@ -71,6 +72,7 @@ def load_config() -> FileConfig | None:
         size=data.get("size", ""),
         key_command=data.get("key_command", ""),
         api_key=data.get("api_key", ""),
+        auto_update=data.get("auto_update", False),
     )
 
 

@@ -266,3 +266,13 @@ def main() -> None:
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        try:
+            from nanobanana.update_check import check_for_update
+            fc = load_config()
+            auto = fc.auto_update if fc else False
+            hint = check_for_update(__version__, auto_update=auto)
+            if hint:
+                print(f"\n{hint}", file=sys.stderr)
+        except Exception:
+            pass
