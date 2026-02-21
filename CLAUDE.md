@@ -18,7 +18,7 @@ Nanobanana is a Python CLI tool that wraps Google's Gemini image generation API.
 - **Dependencies**: `google-genai` (Gemini SDK), `httpx` (OpenRouter HTTP client)
 - **Dev deps**: `pytest`
 - **Build**: `hatchling` backend, `uv` toolchain
-- **Distribution**: PyPI via `uv tool install nanobanana`
+- **Distribution**: PyPI via `uv tool install nanobanana-cli`
 - **CI/CD**: GitHub Actions — test + publish to PyPI on every push to main
 
 ## Code Structure

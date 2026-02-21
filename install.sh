@@ -30,7 +30,7 @@ if [ -f "${SCRIPT_DIR}/pyproject.toml" ]; then
   uv tool install --upgrade "${SCRIPT_DIR}" 2>/dev/null || uv tool install "${SCRIPT_DIR}"
 else
   # Remote install from PyPI
-  uv tool install nanobanana --upgrade 2>/dev/null || uv tool install nanobanana
+  uv tool install nanobanana-cli --upgrade 2>/dev/null || uv tool install nanobanana-cli
 fi
 
 # Install Claude Code skill (only if Claude Code is set up)

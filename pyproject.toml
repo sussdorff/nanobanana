@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nanobanana"
+name = "nanobanana-cli"
 version = "0.0.0.dev0"
 description = "CLI tool for generating and editing images using Google's Gemini API or OpenRouter"
 readme = "README.md"

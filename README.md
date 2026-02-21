@@ -32,13 +32,13 @@ This installs the CLI via `uv tool install` and copies the Claude Code skill to 
 ### CLI only (via uv)
 
 ```bash
-uv tool install nanobanana
+uv tool install nanobanana-cli
 ```
 
 ### CLI only (via pip)
 
 ```bash
-pip install nanobanana
+pip install nanobanana-cli
 ```
 
 ## Setup

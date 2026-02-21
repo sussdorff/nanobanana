@@ -13,7 +13,7 @@ Generate images using nanobanana CLI with subcommands that wrap prompts in struc
 ## Prerequisites
 
 ```bash
-uv tool install nanobanana
+uv tool install nanobanana-cli
 ```
 
 API key via env var (`GEMINI_API_KEY` or `OPENROUTER_API_KEY`) or config file at `~/.config/nanobanana/config.json` with `key_command` for dynamic retrieval (e.g., 1Password).

@@ -47,9 +47,7 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}
-        run: uv publish
+        run: uv publish --trusted-publishing always
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -60,10 +58,10 @@ jobs:
             ## Installation
 
             ```bash
-            uv tool install nanobanana
+            uv tool install nanobanana-cli
             ```
 
             Or upgrade:
             ```bash
-            uv tool upgrade nanobanana
+            uv tool upgrade nanobanana-cli
             ```
