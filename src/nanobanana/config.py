@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -36,11 +37,17 @@ class APIConfig:
 
 
 def get_config_path() -> Path | None:
-    """Return the XDG config file path, or None if home dir unavailable."""
-    config_home = os.environ.get("XDG_CONFIG_HOME")
-    if not config_home:
-        home = Path.home()
-        config_home = str(home / ".config")
+    """Return the platform-appropriate config file path.
+
+    Windows: %APPDATA%/nanobanana/config.json
+    Others:  $XDG_CONFIG_HOME/nanobanana/config.json (default: ~/.config/)
+    """
+    if sys.platform == "win32":
+        config_home = os.environ.get("APPDATA", str(Path.home()))
+    else:
+        config_home = os.environ.get("XDG_CONFIG_HOME")
+        if not config_home:
+            config_home = str(Path.home() / ".config")
     return Path(config_home) / "nanobanana" / "config.json"
 
 
