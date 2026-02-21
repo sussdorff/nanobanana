@@ -312,6 +312,7 @@ def format_help_overview() -> str:
         "  -aspect <ratio> Aspect ratio (overrides command default)",
         "  -size <size>    Image size (overrides command default)",
         "  -model <model>  OpenRouter model",
+        "  -open           Open image after saving",
         "  -h              Show this help",
         "  -version        Show version",
         "",

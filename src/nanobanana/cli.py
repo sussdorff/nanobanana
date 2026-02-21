@@ -1,6 +1,7 @@
 """CLI entry point for nanobanana."""
 
 import argparse
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -38,6 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="OpenRouter model")
     parser.add_argument("-h", action="store_true", dest="show_help",
                         help="Show help")
+    parser.add_argument("-open", action="store_true", dest="open_image",
+                        help="Open image after saving")
     parser.add_argument("-version", action="store_true", dest="show_version",
                         help="Show version")
     parser.add_argument("prompt", nargs="*", help="Generation prompt")
@@ -241,6 +244,19 @@ def run(argv: list[str] | None = None) -> None:
         raise RuntimeError(f"failed to write output file: {e}") from e
 
     print(f"\nImage saved to: {output_path}")
+
+    # Open image if requested
+    if args.open_image:
+        if sys.platform == "darwin":
+            opener = ["open"]
+        elif sys.platform == "win32":
+            opener = ["start", ""]
+        else:
+            opener = ["xdg-open"]
+        try:
+            subprocess.Popen([*opener, output_path])
+        except OSError:
+            pass  # silently ignore if opener not available
 
 
 def main() -> None:
