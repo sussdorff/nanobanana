@@ -19,7 +19,7 @@ Nanobanana is a Python CLI tool that wraps Google's Gemini image generation API.
 - **Dev deps**: `pytest`
 - **Build**: `hatchling` backend, `uv` toolchain
 - **Distribution**: PyPI via `uv tool install nanobanana-cli`
-- **CI/CD**: GitHub Actions — test + publish to PyPI on every push to main
+- **CI/CD**: GitHub Actions — test + publish to PyPI on CalVer tag push
 
 ## Code Structure
 
@@ -147,22 +147,21 @@ Errors are raised as `RuntimeError` with descriptive messages. `main()` catches 
 
 ## Versioning
 
-- **Format**: `YYYYMMDD.HHMMSS` (e.g., `20260118.153045`)
+- **Format**: CalVer `YYYY.0M.MICRO` (e.g., `2026.02.0`, `2026.02.1`)
 - **Local/dev builds**: Show `dev` as version (via `importlib.metadata` fallback)
-- **Release builds**: Version stamped into `pyproject.toml` by CI before `uv build`
+- **Release builds**: Version extracted from git tag and stamped into `pyproject.toml` by CI
 - **Check version**: `nanobanana -version`
 
 ## Release Workflow
 
-GitHub Actions automatically creates releases on every push to main:
+Releases are triggered by pushing a CalVer tag (e.g., `v2026.02.0`):
 
-1. **Test job**: `uv run pytest -v`
-2. **Publish job** (after test passes):
-   - Generate version from UTC datetime
-   - Stamp version into `pyproject.toml`
-   - `uv build` → wheel + sdist
-   - `uv publish` → PyPI
-   - Create GitHub Release with install instructions
+1. **Primary method**: Use `/session-close` skill in Claude Code
+2. **Manual method**: `git tag v2026.02.X && git push origin main --tags`
+3. **CI/CD**: GitHub Actions runs tests, builds, publishes to PyPI, creates GitHub Release
+4. **Changelog**: Managed by git-cliff (`cliff.toml`), uses conventional commits
+
+See `docs/release.md` for full details.
 
 ## Examples Directory
 
