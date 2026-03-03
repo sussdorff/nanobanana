@@ -1,0 +1,5 @@
+repos:
+  primary: "."
+  additional:
+    - "/Users/malte/.beads-planning"
+sync-branch: beads-sync
