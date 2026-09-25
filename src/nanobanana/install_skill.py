@@ -13,7 +13,7 @@ def install_skill(claude_dir: str | None = None) -> None:
     if not claude_path.exists():
         print(f"Claude Code directory not found: {claude_path}")
         print("Install Claude Code first, then re-run this command.")
-        print(f"Or specify a custom path: nanobanana install-skill --claude-dir <path>")
+        print("Or specify a custom path: nanobanana install-skill --claude-dir <path>")
         return
 
     # Locate skill files: bundled in package, or repo source directory

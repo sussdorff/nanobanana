@@ -333,7 +333,7 @@ def format_command_help(cmd: Command) -> str:
         "Usage:",
         f'  nanobanana {cmd.name} [options] "prompt"',
         "",
-        f"Defaults:",
+        "Defaults:",
         f"  Aspect ratio: {cmd.default_aspect}",
         f"  Size:         {cmd.default_size}",
         "",
@@ -349,27 +349,27 @@ def format_command_help(cmd: Command) -> str:
     ])
     match cmd.name:
         case "dashboard":
-            lines.append(f'  nanobanana dashboard "SaaS metrics dashboard with MRR, churn rate, and user growth"')
+            lines.append('  nanobanana dashboard "SaaS metrics dashboard with MRR, churn rate, and user growth"')
         case "moodboard":
-            lines.append(f'  nanobanana moodboard "fintech app targeting young professionals, trustworthy yet modern"')
+            lines.append('  nanobanana moodboard "fintech app targeting young professionals, trustworthy yet modern"')
         case "explore":
-            lines.append(f'  nanobanana explore "landing page hero for a meditation app"')
+            lines.append('  nanobanana explore "landing page hero for a meditation app"')
         case "wireframe":
-            lines.append(f'  nanobanana wireframe "settings page with account, notifications, and billing sections"')
+            lines.append('  nanobanana wireframe "settings page with account, notifications, and billing sections"')
         case "slide":
-            lines.append(f'  nanobanana slide "Q4 revenue highlights: 40% YoY growth, 3 new enterprise clients"')
-            lines.append(f'  nanobanana slide funnel "our SaaS product funnel"')
-            lines.append(f'  nanobanana slide arr "Q4 2025 ARR bridge"')
+            lines.append('  nanobanana slide "Q4 revenue highlights: 40% YoY growth, 3 new enterprise clients"')
+            lines.append('  nanobanana slide funnel "our SaaS product funnel"')
+            lines.append('  nanobanana slide arr "Q4 2025 ARR bridge"')
             lines.append("")
             lines.append("This command has 20 board deck subtemplates. Run:")
             lines.append('  nanobanana help slide templates')
         case "social":
-            lines.append(f'  nanobanana social "product launch announcement for a new AI writing tool"')
+            lines.append('  nanobanana social "product launch announcement for a new AI writing tool"')
         case "icon":
-            lines.append(f'  nanobanana icon "podcast app with a microphone and sound waves"')
+            lines.append('  nanobanana icon "podcast app with a microphone and sound waves"')
         case "architecture":
-            lines.append(f'  nanobanana architecture "microservices with API gateway, 3 services, Redis cache, and PostgreSQL"')
+            lines.append('  nanobanana architecture "microservices with API gateway, 3 services, Redis cache, and PostgreSQL"')
         case "generate":
-            lines.append(f'  nanobanana generate "a cute cat sitting on a windowsill"')
+            lines.append('  nanobanana generate "a cute cat sitting on a windowsill"')
 
     return "\n".join(lines) + "\n"

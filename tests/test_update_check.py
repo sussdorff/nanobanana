@@ -3,8 +3,6 @@
 import json
 import time
 
-import pytest
-
 from nanobanana.update_check import (
     _cache_path,
     _read_cache,

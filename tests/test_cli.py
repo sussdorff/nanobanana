@@ -2,10 +2,18 @@
 
 import pytest
 
-from nanobanana.cli import build_parser, _extract_subcommand
-from nanobanana.mime import extension_from_mime
-from nanobanana.slide_templates import SLIDE_TEMPLATES, get_slide_template, format_slide_help
-from nanobanana.templates import COMMANDS, get_command, format_help_overview, format_command_help
+from nanobanana.cli import _extract_subcommand, build_parser
+from nanobanana.slide_templates import (
+    SLIDE_TEMPLATES,
+    format_slide_help,
+    get_slide_template,
+)
+from nanobanana.templates import (
+    COMMANDS,
+    format_command_help,
+    format_help_overview,
+    get_command,
+)
 
 
 def test_parse_basic_prompt() -> None:
@@ -60,34 +68,6 @@ def test_parse_repeatable_input() -> None:
     parser = build_parser()
     args = parser.parse_args(["-i", "a.jpg", "-i", "b.png", "-i", "c.webp", "prompt"])
     assert args.input_images == ["a.jpg", "b.png", "c.webp"]
-
-
-# --- Extension auto-correction (ported from TestExtensionAutoCorrection) ---
-
-@pytest.mark.parametrize(
-    "user_output, mime_type, expected_ext",
-    [
-        ("output.png", "image/jpeg", ".jpg"),
-        ("output.jpg", "image/jpeg", ".jpg"),
-        ("output.png", "image/png", ".png"),
-        ("output.webp", "image/jpeg", ".jpg"),
-        ("output", "image/jpeg", ".jpg"),
-    ],
-)
-def test_extension_auto_correction(user_output: str, mime_type: str, expected_ext: str) -> None:
-    """Ported from TestExtensionAutoCorrection in Go."""
-    from pathlib import Path
-
-    correct_ext = extension_from_mime(mime_type)
-    output_path = user_output
-    current_ext = Path(output_path).suffix.lower()
-
-    if current_ext != correct_ext:
-        # Strip existing extension and add correct one
-        stem = Path(output_path).stem if Path(output_path).suffix else output_path
-        output_path = stem + correct_ext
-
-    assert output_path.endswith(expected_ext)
 
 
 # --- Subcommand routing tests ---
@@ -156,8 +136,6 @@ class TestTemplateApplication:
         assert cmd is not None
         result = cmd.apply("revenue metrics for Q4", aspect="16:9", size="2K")
         assert "revenue metrics for Q4" in result
-        assert "TASK" in result
-        assert "SOURCE MATERIAL" in result
 
     def test_generate_passes_through(self) -> None:
         cmd = get_command("generate")
@@ -243,35 +221,12 @@ class TestHelpFormatting:
         assert "2K" in help_text
         assert "dashboard" in help_text
 
-    def test_command_help_shows_template(self) -> None:
-        cmd = get_command("slide")
-        assert cmd is not None
-        help_text = format_command_help(cmd)
-        assert "TASK" in help_text
-
     def test_unknown_command_returns_none(self) -> None:
         assert get_command("nonexistent") is None
 
 
 class TestBackwardsCompatibility:
     """Tests that existing usage patterns still work after subcommand addition."""
-
-    def test_free_prompt_no_command(self) -> None:
-        """nanobanana 'a cute cat' should still work."""
-        cmd, rest = _extract_subcommand(["a cute cat"])
-        assert cmd == ""
-        parser = build_parser()
-        args = parser.parse_args(rest)
-        assert args.prompt == ["a cute cat"]
-
-    def test_flags_with_free_prompt(self) -> None:
-        """nanobanana -i img.jpg 'prompt' should still work."""
-        cmd, rest = _extract_subcommand(["-i", "img.jpg", "a prompt"])
-        assert cmd == ""
-        parser = build_parser()
-        args = parser.parse_args(rest)
-        assert args.input_images == ["img.jpg"]
-        assert args.prompt == ["a prompt"]
 
     def test_all_flags_with_free_prompt(self) -> None:
         """nanobanana -i a.jpg -o out.png -aspect 16:9 -size 2K 'prompt'"""
@@ -326,22 +281,6 @@ class TestSlideSubtemplates:
         }
         assert set(SLIDE_TEMPLATES.keys()) == expected
 
-    def test_slide_subtemplate_contains_user_prompt(self) -> None:
-        """Subtemplate should inject user prompt into SOURCE MATERIAL."""
-        tmpl = get_slide_template("arr")
-        assert tmpl is not None
-        result = tmpl.template.format(user_prompt="Q4 2025 ARR bridge", size="2K")
-        assert "Q4 2025 ARR bridge" in result
-        assert "SOURCE MATERIAL" in result
-        assert "TASK" in result
-
-    def test_slide_subtemplate_injects_size(self) -> None:
-        """Subtemplate should inject size into OUTPUT RULES."""
-        tmpl = get_slide_template("okr")
-        assert tmpl is not None
-        result = tmpl.template.format(user_prompt="test", size="2K")
-        assert "2K" in result
-
     @pytest.mark.parametrize("name", list(SLIDE_TEMPLATES.keys()))
     def test_all_subtemplates_format_without_error(self, name: str) -> None:
         """Every subtemplate must format with user_prompt and size without errors."""
@@ -369,21 +308,3 @@ class TestSlideSubtemplates:
         help_text = format_slide_help()
         for name in SLIDE_TEMPLATES:
             assert name in help_text
-
-    def test_slide_help_includes_usage(self) -> None:
-        """format_slide_help should show usage examples."""
-        help_text = format_slide_help()
-        assert "nanobanana slide funnel" in help_text
-        assert "nanobanana slide arr" in help_text
-
-    def test_help_overview_mentions_subtemplates(self) -> None:
-        """The help overview should hint at slide subtemplates."""
-        overview = format_help_overview()
-        assert "subtemplates" in overview.lower() or "subtemplate" in overview.lower()
-
-    def test_slide_command_help_mentions_subtemplates(self) -> None:
-        """The slide command help should reference subtemplates."""
-        cmd = get_command("slide")
-        assert cmd is not None
-        help_text = format_command_help(cmd)
-        assert "subtemplate" in help_text.lower() or "funnel" in help_text

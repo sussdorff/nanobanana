@@ -125,6 +125,6 @@ def run_setup() -> None:
     if key_source == "env":
         env_name = "GEMINI_API_KEY" if api == "gemini" else "OPENROUTER_API_KEY"
         print(f"  1. export {env_name}='your-key-here'")
-        print(f'  2. nanobanana "a cute cat"')
+        print('  2. nanobanana "a cute cat"')
     else:
-        print(f'  nanobanana "a cute cat"')
+        print('  nanobanana "a cute cat"')
