@@ -47,7 +47,7 @@ def _fetch_latest_version() -> str | None:
         with urllib.request.urlopen(req, timeout=3) as resp:
             data = json.loads(resp.read())
             return data.get("info", {}).get("version")
-    except Exception:
+    except Exception:  # noqa: BLE001 - version checks fail closed on any fetch error
         return None
 
 
@@ -59,9 +59,10 @@ def _run_upgrade() -> bool:
             capture_output=True,
             text=True,
             timeout=120,
+            check=False,
         )
         return result.returncode == 0
-    except Exception:
+    except Exception:  # noqa: BLE001 - updater reports failure as a boolean
         return False
 
 
@@ -99,14 +100,14 @@ def check_for_update(current_version: str, *, auto_update: bool = False) -> str 
                     return f"Updated to {latest}. Restart to use the new version."
                 else:
                     return (
-                        f"Auto-update failed. Run manually:\n"
-                        f"  uv tool install nanobanana-cli --force --refresh"
+                        "Auto-update failed. Run manually:\n"
+                        "  uv tool install nanobanana-cli --force --refresh"
                     )
             return (
                 f"Update available: {current_version} \u2192 {latest}\n"
                 f"Run: uv tool install nanobanana-cli --force --refresh"
             )
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - update hints must not mask CLI results
         pass
 
     return None

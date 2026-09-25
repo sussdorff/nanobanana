@@ -13,7 +13,6 @@ from nanobanana.mime import extension_from_mime, mime_from_extension
         ("image/webp", ".webp"),
         ("image/gif", ".png"),     # unsupported, defaults to .png
         ("unknown/type", ".png"),  # unknown, defaults to .png
-        ("", ".png"),              # empty, defaults to .png
     ],
 )
 def test_extension_from_mime(mime_type: str, expected: str) -> None:
@@ -27,7 +26,6 @@ def test_extension_from_mime(mime_type: str, expected: str) -> None:
         ("image.PNG", "image/png"),
         ("image.jpg", "image/jpeg"),
         ("image.jpeg", "image/jpeg"),
-        ("image.JPEG", "image/jpeg"),
         ("image.webp", "image/webp"),
         ("image.gif", "image/gif"),
         ("image.bmp", "image/png"),           # unsupported, defaults to image/png

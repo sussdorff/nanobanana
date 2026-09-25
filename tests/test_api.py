@@ -1,13 +1,9 @@
 """Tests for API request building — no network calls."""
 
 import base64
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
-
-from nanobanana.mime import mime_from_extension
 
 
 def test_openrouter_data_url_building(tmp_path: Path) -> None:

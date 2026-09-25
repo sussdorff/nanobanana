@@ -1,6 +1,5 @@
 """Gemini API image generation using google-genai SDK."""
 
-import base64
 from pathlib import Path
 
 from google import genai

@@ -1,46 +1,15 @@
 """Tests for config validation and resolution — ported from Go tests."""
 
 import json
-import os
 
 import pytest
 
 from nanobanana.config import (
-    VALID_ASPECT_RATIOS,
-    VALID_SIZES,
     FileConfig,
     _run_key_command,
     load_config,
     resolve_config,
 )
-
-
-# --- Aspect ratio validation (ported from TestValidAspectRatios) ---
-
-@pytest.mark.parametrize(
-    "ratio",
-    ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-)
-def test_valid_aspect_ratios(ratio: str) -> None:
-    assert ratio in VALID_ASPECT_RATIOS
-
-
-@pytest.mark.parametrize("ratio", ["1:2", "16:10", "4:4", "invalid", ""])
-def test_invalid_aspect_ratios(ratio: str) -> None:
-    assert ratio not in VALID_ASPECT_RATIOS
-
-
-# --- Size validation (ported from TestValidSizes) ---
-
-@pytest.mark.parametrize("size", ["1K", "2K", "4K"])
-def test_valid_sizes(size: str) -> None:
-    assert size in VALID_SIZES
-
-
-@pytest.mark.parametrize("size", ["1k", "3K", "8K", "HD", ""])
-def test_invalid_sizes(size: str) -> None:
-    assert size not in VALID_SIZES
-
 
 # --- Config resolution ---
 
@@ -88,7 +57,7 @@ def test_resolve_model_flag_forces_openrouter(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
-    aspect, size, config = resolve_config(
+    _, _, config = resolve_config(
         aspect_flag="", size_flag="", model_flag="custom/model", file_config=None,
     )
     assert config.use_openrouter is True

@@ -9,7 +9,10 @@ from pathlib import Path
 from nanobanana import __version__
 from nanobanana.config import load_config, resolve_config
 from nanobanana.mime import extension_from_mime
-from nanobanana.slide_templates import SLIDE_TEMPLATES, format_slide_help, get_slide_template
+from nanobanana.slide_templates import (
+    format_slide_help,
+    get_slide_template,
+)
 from nanobanana.templates import (
     COMMANDS,
     format_command_help,
@@ -229,7 +232,7 @@ def run(argv: list[str] | None = None) -> None:
     correct_ext = extension_from_mime(mime_type)
 
     if not output_path:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # noqa: DTZ005 - keep local filenames
         output_path = f"image_{timestamp}{correct_ext}"
     else:
         current_ext = Path(output_path).suffix.lower()
@@ -274,5 +277,5 @@ def main() -> None:
             hint = check_for_update(__version__, auto_update=auto)
             if hint:
                 print(f"\n{hint}", file=sys.stderr)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - update hints must not mask CLI results
             pass

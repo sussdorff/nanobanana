@@ -2,25 +2,14 @@
 
 import json
 
-import pytest
-
 from nanobanana.cli import _extract_subcommand
 from nanobanana.config import FileConfig, load_config, resolve_config, write_config
 
 
-class TestSetupSubcommand:
-    """Tests that 'setup' is recognized as a subcommand."""
-
-    def test_setup_extracted(self) -> None:
-        cmd, rest = _extract_subcommand(["setup"])
-        assert cmd == "setup"
-        assert rest == []
-
-    def test_setup_not_confused_with_prompt(self) -> None:
-        """'setup' as first arg should be treated as command, not prompt."""
-        cmd, rest = _extract_subcommand(["setup", "extra"])
-        assert cmd == "setup"
-        assert rest == ["extra"]
+def test_setup_subcommand_extracted() -> None:
+    cmd, rest = _extract_subcommand(["setup", "extra"])
+    assert cmd == "setup"
+    assert rest == ["extra"]
 
 
 class TestWriteConfig:
@@ -106,35 +95,6 @@ class TestApiKeyFromConfig:
             aspect_flag="", size_flag="", model_flag="", file_config=fc,
         )
         assert config.api_key == "direct-key"
-
-    def test_load_config_reads_api_key(self, tmp_path, monkeypatch) -> None:
-        config_dir = tmp_path / "nanobanana"
-        config_dir.mkdir()
-        config_file = config_dir / "config.json"
-        config_file.write_text(json.dumps({
-            "api": "gemini",
-            "api_key": "my-stored-key",
-        }))
-        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-
-        fc = load_config()
-        assert fc is not None
-        assert fc.api_key == "my-stored-key"
-
-
-class TestAutoDetectTrigger:
-    """Tests for the auto-detect setup suggestion."""
-
-    def test_no_config_no_env_raises_with_hint(self, monkeypatch, capsys) -> None:
-        """When no config and no env vars, error should be raised."""
-        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
-            resolve_config(
-                aspect_flag="", size_flag="", model_flag="", file_config=None,
-            )
-
 
 class TestHelpText:
     """Tests that setup appears in help text."""

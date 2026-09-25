@@ -4,7 +4,7 @@ import json
 import os
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 GEMINI_MODEL = "gemini-3-pro-image-preview"
@@ -88,6 +88,7 @@ def _run_key_command(command: str) -> str:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"key_command timed out: {command}") from e
