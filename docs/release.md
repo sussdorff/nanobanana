@@ -9,23 +9,15 @@ Nanobanana uses [CalVer](https://calver.org/) versioning (`YYYY.0M.MICRO`) and r
 - New month: reset MICRO to 0 (`2026.02.3` -> `2026.03.0`)
 - Tags are prefixed with `v`: `v2026.02.0`
 
-## Release via /session-close
+## Release ownership
 
-The primary way to release is through the global `/session-close` skill in Claude Code:
+The assigned delivery owner completes review and verification before release.
+Track work in hosted issues through `ccore tracker`. GitHub Actions tests,
+builds and publishes to PyPI and creates a GitHub Release when a tag is pushed.
 
-1. Work on features/fixes with conventional commit messages
-2. Run `/session-close` when done
-3. The skill will:
-   - Close relevant beads
-   - Commit pending changes
-   - Generate/update CHANGELOG.md via `git cliff`
-   - Determine the next CalVer version
-   - Create and push the tag
-4. GitHub Actions handles the rest (test, build, publish to PyPI, create GitHub Release)
+## Manual Release
 
-## Manual Release (Fallback)
-
-If you need to release manually:
+Follow these steps after the delivery's required checks pass:
 
 ```bash
 # 1. Ensure all changes are committed
