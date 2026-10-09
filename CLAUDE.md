@@ -141,6 +141,10 @@ Tests cover:
 - Extension auto-correction logic
 - API request building (data URLs, missing files)
 
+### Toolchain check
+
+`python3 .agents/standards/toolchains/scripts/check_toolchain_versions.py` checks that declared toolchain versions track the latest release. It runs from `scripts/dev/preflight.sh` (pre-push hook) and the Toolchains CI workflow (`.github/workflows/toolchains.yml`).
+
 ## Error Handling
 
 Errors are raised as `RuntimeError` with descriptive messages. `main()` catches them, prints `Error: <message>` to stderr, and exits with code 1.

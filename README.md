@@ -14,7 +14,8 @@ A lightweight CLI tool for generating and editing images using Google's Gemini A
 
 ## Requirements
 
-- Python 3.14+
+- Python 3.14 or newer, on the latest patch release
+- uv, latest release (for source installs and development)
 - Google Gemini API key OR OpenRouter API key
 
 ## Installation

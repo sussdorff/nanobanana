@@ -1,0 +1,30 @@
+name: Toolchains
+
+# A new upstream toolchain release can fail this check without any change in this
+# repository, so it runs on every push and pull request without path filters.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-toolchain-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          check-latest: true
+
+      - name: Check toolchain versions
+        run: python3 .agents/standards/toolchains/scripts/check_toolchain_versions.py
