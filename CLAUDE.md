@@ -143,7 +143,7 @@ Tests cover:
 
 ### Toolchain check
 
-`python3 .agents/standards/toolchains/scripts/check_toolchain_versions.py` checks that declared toolchain versions track the latest release. It runs from `scripts/dev/preflight.sh` (pre-push hook) and the Toolchains CI workflow (`.github/workflows/toolchains.yml`).
+`ccore toolchains check` checks that declared toolchain versions track the latest release. It runs from `scripts/dev/preflight.sh` (pre-push hook).
 
 ## Error Handling
 
@@ -160,10 +160,9 @@ Errors are raised as `RuntimeError` with descriptive messages. `main()` catches 
 
 Releases are triggered by pushing a CalVer tag (e.g., `v2026.02.0`):
 
-1. **Primary method**: Use `/session-close` skill in Claude Code
-2. **Manual method**: `git tag v2026.02.X && git push origin main --tags`
-3. **CI/CD**: GitHub Actions runs tests, builds, publishes to PyPI, creates GitHub Release
-4. **Changelog**: Managed by git-cliff (`cliff.toml`), uses conventional commits
+1. **Tag**: `git tag v2026.02.X && git push origin main --tags`
+2. **CI/CD**: GitHub Actions runs tests, builds, publishes to PyPI, creates GitHub Release
+3. **Changelog**: Managed by git-cliff (`cliff.toml`), uses conventional commits
 
 See `docs/release.md` for full details.
 

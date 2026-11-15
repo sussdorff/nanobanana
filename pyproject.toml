@@ -27,8 +27,5 @@ packages = ["src/nanobanana"]
 testpaths = ["tests"]
 addopts = "-n auto"
 
-[tool.ruff]
-extend-exclude = [".agents", ".claude"]
-
 [dependency-groups]
 dev = ["pytest>=8.0", "pytest-xdist>=3.8", "ruff>=0.9"]
